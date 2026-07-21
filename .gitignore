@@ -1,0 +1,5 @@
+# Segredos e artefatos locais - NUNCA versionar
+mcp.json
+.env
+.cache/
+*.log

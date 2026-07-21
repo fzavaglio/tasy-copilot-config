@@ -1,0 +1,67 @@
+{
+  "servers": {
+    "AzureDevOps": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "<AJUSTE: caminho local do @azure-devops/mcp/dist/index.js>",
+        "emr-cm", "-d", "core", "work", "work-items", "search"
+      ],
+      "env": {
+        "AZURE_DEVOPS_USER": "${AZURE_DEVOPS_USER}",
+        "AZURE_DEVOPS_AREA_PATH": "${AZURE_DEVOPS_AREA_PATH}",
+        "AZURE_DEVOPS_PAT": "${TASY_AZURE_DEVOPS_PAT}",
+        "AZURE_DEVOPS_EXT_PAT": "${TASY_AZURE_DEVOPS_PAT}"
+      }
+    },
+    "GitHub": {
+      "type": "sse",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer ${GITHUB_TOKEN}",
+        "X-MCP-Toolsets": "context,pull_requests,repos,code_security"
+      },
+      "env": {
+        "GITHUB_TOKEN": "${TASY_GITHUB_PAT}",
+        "HTTP_PROXY": "${HTTP_PROXY}",
+        "HTTPS_PROXY": "${HTTPS_PROXY}"
+      }
+    },
+    "Financial": {
+      "type": "stdio",
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "--add-host=srv-dbora-09:192.168.253.33",
+        "--add-host=srv-dbora-09.whebdc.com.br:192.168.253.33",
+        "-e", "ORACLE_CONNECTION_STRING", "-e", "TARGET_SCHEMA",
+        "-e", "CACHE_DIR", "-e", "THICK_MODE", "-e", "ORACLE_CLIENT_LIB_DIR",
+        "harbor.whebdc.com.br/aws/dev/emr-oracle-mcp-server:v1.0.0"
+      ],
+      "env": {
+        "CACHE_DIR": ".cache",
+        "ORACLE_CLIENT_LIB_DIR": "/opt/oracle/instantclient_23_7",
+        "ORACLE_CONNECTION_STRING": "Tasy/${ORACLE_PASSWORD_FINANCIAL}@192.168.253.33:1521/FINANCIAL_ACCOUNTING",
+        "TARGET_SCHEMA": "TASY",
+        "THICK_MODE": "1"
+      }
+    },
+    "Dev": {
+      "type": "stdio",
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "-e", "ORACLE_CONNECTION_STRING", "-e", "TARGET_SCHEMA",
+        "-e", "CACHE_DIR", "-e", "THICK_MODE", "-e", "ORACLE_CLIENT_LIB_DIR",
+        "harbor.whebdc.com.br/aws/dev/emr-oracle-mcp-server:v1.0.0"
+      ],
+      "env": {
+        "CACHE_DIR": ".cache",
+        "ORACLE_CLIENT_LIB_DIR": "/opt/oracle/instantclient_23_7",
+        "ORACLE_CONNECTION_STRING": "wheb_readonly/${ORACLE_PASSWORD_DEV}@srv-db-phdev.whebdc.com.br:1521/orcl",
+        "TARGET_SCHEMA": "TASY",
+        "THICK_MODE": "1"
+      }
+    }
+  }
+}
