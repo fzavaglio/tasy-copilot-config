@@ -23,8 +23,12 @@ scripts/package-customizations.ps1     # seed inicial a partir de ~/.copilot (us
 
 ## Como usar
 
-1. **Clone** este repositório.
-2. **Adicione a pasta ao seu workspace** do VS Code (multi-root), junto dos repos do Tasy (`emr-tasy-backend`, `emr-tasy-frontend`, `emr-tasy-plsql`). O VS Code descobre automaticamente o agente, as skills e as instruções deste `.github/`.
+1. **Clone** este repositório. Pode ser em qualquer lugar — inclusive dentro da mesma pasta pai onde você já tem os repos do Tasy (`emr-tasy-backend`, `emr-tasy-frontend`, `emr-tasy-plsql`).
+2. **Adicione esta pasta ao seu workspace do VS Code (multi-root)**: menu `File` > `Add Folder to Workspace...` e selecione a pasta `tasy-copilot-config`, junto dos repos do Tasy que você já tiver aberto. A partir do momento em que ela vira uma raiz (root) do workspace, o VS Code descobre automaticamente o agente, as skills e as instruções deste `.github/` — sem precisar mexer em nenhuma configuração (`settings.json`).
+
+   > **Atenção:** apenas clonar o repositório dentro da mesma pasta onde você já tem os outros repositórios (por exemplo, como subpasta de uma pasta pai que você abre como single-root) **não é suficiente**. O VS Code só descobre customizações (`.github/agents`, `.github/instructions`, `.github/skills`) em pastas que são raiz explícita do workspace — ele não varre subpastas arbitrárias procurando por `.github`. É sempre necessário usar `Add Folder to Workspace` apontando diretamente para esta pasta, esteja ela aninhada dentro de outra pasta ou não.
+
+   > **Dica:** se quiser que essa combinação de pastas seja lembrada entre sessões, salve o workspace localmente como um arquivo `.code-workspace` (`File` > `Save Workspace As...`) — isso é pessoal, não precisa (nem deve) ser commitado no repositório, já que os caminhos das pastas variam de máquina para máquina.
 3. **Configure os MCP servers**: copie `mcp.json.example` para o seu `~/.copilot/mcp.json` e defina as variáveis de ambiente (PATs e senhas Oracle). Nunca commite valores reais.
 4. Ajuste o caminho local do executável do MCP do Azure DevOps.
 5. O MCP do **Playwright** (usado pela skill `tasy-playwright`) é configurado à parte, fora deste template.
