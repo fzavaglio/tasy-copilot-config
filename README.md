@@ -4,6 +4,33 @@ Configuração compartilhada do GitHub Copilot para a equipe Tasy: o agente **Ta
 
 Este repositório é a **fonte da verdade** da configuração. Foi portabilizado (sem caminhos absolutos de usuário, sem identidade fixa e sem segredos) para poder ser clonado e evoluído pela equipe.
 
+## O que o agente faz
+
+### Análise e correção de cards
+
+- **Analisar tecnicamente um card ADO**: ler o work item, discussions e passos de reprodução, criticar a documentação, classificar entre **bug** × **dúvida/configuração**, validando com banco, código e reprodução no sistema.
+- **Investigar e corrigir bugs** no frontend, backend ou PL/SQL, diagnosticando a causa raiz (inclusive Schematics DX e Legado, parametrização por função, timezone, etc.).
+
+### Banco de dados (Oracle)
+
+- Consultar as bases **Dev** e **Financial**, inspecionar objetos PL/SQL, rastrear histórico via `OBJETO_SISTEMA_HIST`, verificar releases (`AJUSTE_VERSAO`) e alterações de dicionário (`log_data`).
+
+### Testes no sistema
+
+- Navegar e reproduzir cenários no **Tasy HTML5** (Playwright / navegador integrado) para validar comportamento antes e depois da correção.
+
+### Git, PRs e versionamento
+
+- Abrir **PRs** (`qa`, `pre_main`) conforme a necessidade, e fazer o **cherry-pick/versionamento** para as versões ativas (1848, 1845, 1842, ...), aplicar labels e preencher o template de PR. *(O agente sempre confirma antes de publicar código remotamente.)*
+
+### Documentação
+
+- Documentar cards ADO (template de defeito, release notes, closure, alterações realizadas) e registrar **conhecimento reutilizável** nos arquivos do agente e nas skills de módulo da função.
+
+### Análise de código legado
+
+- Comparar o comportamento do HTML5 com **Java Swing / Delphi** quando é preciso alinhar a implementação.
+
 ## Estrutura
 
 ```
