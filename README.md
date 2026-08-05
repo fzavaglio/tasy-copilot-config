@@ -44,12 +44,4 @@ scripts/package-customizations.ps1     # seed inicial a partir de ~/.copilot (us
 
 ## Contribuindo
 
-Veja o `CONTRIBUTING.md`. Em resumo: edite os arquivos em `.github/` e abra PR. Nunca commite segredos. Não regenere o repo a partir de um `~/.copilot` pessoal.
-
-## O que foi deliberadamente excluído
-
-- Segredos (senhas Oracle, PATs) — substituídos por variáveis de ambiente no template.
-- Identidade pessoal — o agente trata referências possessivas como "usuário atual".
-- Skills genéricas não específicas deste agente (`java-quality`, `security-review`, `unit-test`, `v2-conventions`).
-- Servidores SonarQube do MCP (fora do escopo do agente).
-- Memória de repositório (`/memories/repo/`) — estado local por máquina.
+Veja o `CONTRIBUTING.md`. Em resumo: edite os arquivos em `.github/` e faça o push. Nunca commite segredos. Não regenere o repo a partir de um `~/.copilot` pessoal.
