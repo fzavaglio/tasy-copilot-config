@@ -170,3 +170,38 @@ applyLayoutCondicional(condicao) {
 ### Layout condicional dirigido por consulta ao backend
 
 Quando a visibilidade/estado de campos depende de uma regra de negócio (ex: o tipo selecionado num LCB), consultar o backend via `executeAction`/`executeQueryAsHash` e aplicar o layout nos eventos relevantes — tipicamente no `onSelectionChange` (troca de registro no grid) e no evento de alteração do campo que dispara a regra (ex: `alterNrSeqTipoContrato`). Reaplicar o layout em ambos evita estado inconsistente ao navegar entre registros.
+
+---
+
+## Boas práticas de código (padrões de revisão)
+
+Convenções recorrentes cobradas em revisão de PR e/ou pelo SonarQube neste frontend:
+
+### Não usar helpers do `angular` para lógica simples
+
+Evitar `angular.equals(a, b)` e afins para comparações triviais — preferir operadores nativos do JS. Reservar `angular.*` para casos em que realmente se precisa da semântica do framework (ex: deep-equal de objetos complexos).
+
+| ❌ Evitar | ✅ Preferir |
+|---|---|
+| `return angular.equals(true, res?.dados);` | `return res?.dados === true;` |
+| `if (angular.equals('S', valor))` | `if (valor === 'S')` |
+
+### Não passar `await` diretamente como argumento
+
+Extrair o resultado de um `await` para uma **variável nomeada** antes de usá-lo como parâmetro. Facilita leitura, manutenção e debug (permite inspecionar o valor). Também evita `await` aninhado dentro de chamada.
+
+```js
+// ❌ Evitar
+this.applyArrendamentoLayout(await this.isTipoArrendamento());
+
+// ✅ Preferir
+const isArrendamento = await this.isTipoArrendamento();
+this.applyArrendamentoLayout(isArrendamento);
+```
+
+### `await` só sobre Promises; usar optional chaining
+
+- Não usar `await` sobre método **síncrono** (que não retorna Promise) — o SonarQube reprova (regra S4123, "redundant await on non-promise"). Só marcar um método como `async`/aguardá-lo quando ele realmente faz trabalho assíncrono.
+- Preferir **optional chaining** a `x && x.prop` (SonarQube S6582): usar `res?.dados` em vez de `res && res.dados`.
+
+> Verificar essas violações localmente com o SonarQube MCP (`analyze_code_snippet`) **antes** de abrir/atualizar o PR, para não depender do ciclo lento dos checks do pipeline.

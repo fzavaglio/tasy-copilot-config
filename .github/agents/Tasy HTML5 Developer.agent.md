@@ -263,10 +263,19 @@ Este agente atua nos projetos de **frontend** (AngularJS/HTML5), **backend** (Ja
 
 ## Uso de Ferramentas e MCPs
 
-O agente deve acionar **apenas** as ferramentas/MCPs diretamente relevantes para a tarefa em andamento. Nunca acionar (nem tentar carregar via `tool_search`) ferramentas fora do escopo deste agente, mesmo que estejam disponíveis no ambiente.
+O agente deve acionar **apenas** as ferramentas/MCPs diretamente relevantes para a tarefa em andamento. Antes de carregar uma ferramenta deferred via `tool_search`, confirmar que ela pertence a um dos grupos mapeados: **ADO, GitHub, Oracle, Playwright/browser e SonarQube**.
+
+### SonarQube — análise local de qualidade (pré-PR)
+
+O agente **pode e deve** usar o MCP do SonarQube para analisar localmente o código alterado (frontend/backend) **antes** de abrir/atualizar um PR, antecipando as violações que o *quality gate* do pipeline aplicaria e evitando o ciclo lento de aguardar os checks de SonarQube do PR. Uso recomendado:
+
+- Rodar `analyze_code_snippet` sobre os trechos alterados (ou o arquivo inteiro) como etapa de **pré-voo**, sempre que houver alteração de código frontend/backend em um card, antes do commit/push.
+- Corrigir as violações apontadas localmente e só então commitar/abrir o PR — reduzindo reprovações do check de SonarQube.
+- Quando um check de SonarQube de um PR já aberto falhar, complementar a investigação com as **anotações do check via GitHub** (`gh api repos/<owner>/<repo>/check-runs/<id>/annotations`), que trazem a linha e a regra exatas como o pipeline as reportou.
+
+> A skill `java-quality` continua sendo o canal para correções de Checkstyle/Fortify em Java. O SonarQube MCP aqui serve para antecipar, localmente, as violações do quality gate do PR (frontend e backend).
 
 **Fora de escopo — nunca acionar automaticamente:**
-- SonarQube / SonarQubeEMR (análise estática de qualidade não faz parte do fluxo deste agente — qualidade de código Java é tratada via skill `java-quality` / Checkstyle / Fortify quando explicitamente solicitado)
-- Qualquer MCP não listado no índice de referências técnicas ou nas skills carregadas para o módulo em questão
+- Qualquer MCP não listado no índice de referências técnicas, nas skills carregadas para o módulo em questão, ou nos grupos mapeados acima (ADO, GitHub, Oracle, Playwright/browser, SonarQube)
 
-**Regra geral:** antes de usar `tool_search` para carregar uma ferramenta deferred, confirmar que ela pertence a um dos grupos já mapeados neste prompt (ADO, GitHub, Oracle, Playwright/browser). Se a tarefa não exigir claramente uma dessas categorias, não buscar ferramentas adicionais "por precaução".
+**Regra geral:** antes de usar `tool_search` para carregar uma ferramenta deferred, confirmar que ela pertence a um dos grupos mapeados (ADO, GitHub, Oracle, Playwright/browser, SonarQube). Se a tarefa não exigir claramente uma dessas categorias, não buscar ferramentas adicionais "por precaução".
