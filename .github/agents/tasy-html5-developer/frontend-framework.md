@@ -123,3 +123,50 @@ Consequências:
 - Definir apenas `setReadOnly(false)` (lógico) **não** torna o campo editável em grid — o `internalReadOnly=true` do preview continua bloqueando.
 - Para permitir a edição de **um campo específico** direto no grid, é preciso limpar também o interno: `attributeInfo.setInternalReadOnly(false)` naquele campo (mantendo os demais campos do detalhe como preview read-only). Inversamente, `setInternalReadOnly(true)` força um campo a ficar read-only em grid.
 - Painéis "flat" (sem preview de detalhe master-detail), onde a edição ocorre na própria linha do grid, **não** sofrem esse read-only interno — o campo é editável em grid sem tratamento algum.
+
+---
+
+## Manipulação de atributos em runtime (WDBPanel)
+
+O acesso a um atributo do detalhe é feito via `dbPanel.getDetailHandler().getAttribute('NM_ATRIBUTO')`. O wrapper retornado expõe métodos para alterar o estado do campo em tempo de execução:
+
+| Método | Efeito |
+|---|---|
+| `setVisible(bool)` | Mostra/oculta o campo |
+| `setLabel(texto)` | Altera o label exibido (passar o **texto já resolvido**, não o código da expressão) |
+| `setMandatory(bool)` | Torna obrigatório/opcional |
+| `setReadOnly(bool)` | Read-only lógico (ver seção anterior) |
+| `setEnabled(bool)` | Habilita/desabilita |
+
+Para limpar o valor de um campo, usar `this.clearValue('NM_ATRIBUTO')` no controller.
+
+### Não existe API de reposicionamento em runtime
+
+O framework **não** possui API para reordenar/reposicionar campos em tempo de execução. O wrapper do atributo só tem `setVisible/setLabel/setMandatory/setReadOnly/setEnabled` — **não** há `setOrdem` nem método de reorder. Alterar `metaAttribute.ordem` e forçar `$apply` **não** reordena o DOM.
+
+> A ordem/posição dos campos é fixada pelo Schematics (propriedades `ordem`/`nrSeqGrupo` no JSON do dbpanel). Para mover um campo de posição, **editar o JSON do schematic** — não é possível fazê-lo por código no controller. Como o dbpanel é escolhido por visão (localidade), o reposicionamento precisa ser replicado em **todas as visões** da função (ver `schematics-dx.md`).
+
+### `setLabel` — usar o wrapper `getAttribute`, não o `attributeInfo`
+
+`getDetailHandler().getAttribute(nome).setLabel(TEXTO)` atualiza o label exibido corretamente. Já `attributeInfo.setLabel(codigo)` grava um valor cru e **não** atualiza o que aparece na tela — não usar essa via para trocar o label.
+
+### `clearValue` durante navegação no grid suja o registro
+
+Chamar `clearValue` enquanto a lista está em **modo grid** (navegando/pré-visualizando linhas) marca o registro como alterado, disparando o diálogo de descarte ao trocar de linha. Ao ocultar campos condicionalmente e querer limpar seus valores, **guardar a limpeza com `this.isEditing()`** — só limpar em modo de edição, nunca durante a navegação/preview do grid:
+
+```js
+applyLayoutCondicional(condicao) {
+  const detail = this.handler.getDetailHandler();
+  const podeLimpar = condicao && this.isEditing();
+  ['CD_PESSOA_CONTRATANTE', 'CD_PACIENTE', 'CD_MEDICO_RESP'].forEach(nmAtributo => {
+    if (podeLimpar) {
+      this.clearValue(nmAtributo);
+    }
+    detail.getAttribute(nmAtributo).setVisible(!condicao);
+  });
+}
+```
+
+### Layout condicional dirigido por consulta ao backend
+
+Quando a visibilidade/estado de campos depende de uma regra de negócio (ex: o tipo selecionado num LCB), consultar o backend via `executeAction`/`executeQueryAsHash` e aplicar o layout nos eventos relevantes — tipicamente no `onSelectionChange` (troca de registro no grid) e no evento de alteração do campo que dispara a regra (ex: `alterNrSeqTipoContrato`). Reaplicar o layout em ambos evita estado inconsistente ao navegar entre registros.

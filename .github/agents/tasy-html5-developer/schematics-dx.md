@@ -52,6 +52,8 @@ corfinf2/
 }
 ```
 
+> **Cuidado ao commitar (mudanças espúrias no `.pt-BR.json`/locale):** sessões do editor de Schematics no ambiente local podem regravar automaticamente o arquivo de localização da função, adicionando migrations não relacionadas ao card (ex: `popUpHandle`, `nrSeqApres` de legendas, bump de `version`). Ao preparar o commit, **revisar o diff** desses arquivos de locale e **não incluí-los** se as mudanças não fizerem parte do card. Adicionar ao stage apenas os arquivos efetivamente alterados para a demanda — nunca `git add .`.
+
 ---
 
 ## JSON raiz da função (`corfinf2.json`)
@@ -142,9 +144,49 @@ Define os campos (atributos) exibidos no painel, critérios de query e todos os 
 | `mask` | Máscara de entrada, ex: `"date(shortDate)"` |
 | `sensitive` | Se `true`, mascara o valor (dados sensíveis) |
 | `logOptions` | Configuração de auditoria do campo |
-| `tooltip` / `tooltipExpressionCode` | Texto de ajuda |
+| `tooltip` / `tooltipExpressionCode` | Texto do **Info button** do campo (ver abaixo) |
 
 **`allCriteria`**: mapa de restrições SQL adicionais indexadas por código, aplicadas à query do WDBPanel conforme o contexto.
+
+### Info button (`tooltip` / `tooltipExpressionCode`)
+
+> **Convenção Tasy:** o texto configurado em `tooltip`/`tooltipExpressionCode` é apresentado como um **Info button** (ícone de informação **i** ao lado do campo) — esse é o termo da convenção Tasy. "Tooltip" é apenas o nome técnico da propriedade no JSON; na documentação de negócio/card usar sempre **Info button**.
+
+- `tooltip` — texto literal de fallback do Info button.
+- `tooltipExpressionCode` — código da expressão (`dic_expressao`) usada para o texto traduzível do Info button. Quando preenchido, tem precedência sobre o `tooltip` literal.
+
+Para alterar o texto de um Info button, criar/editar a expressão em `dic_expressao` e apontar o `tooltipExpressionCode` do campo para o novo código. Como o campo existe em cada visão (localidade) da função, o `tooltipExpressionCode` precisa ser atualizado em **todos os dbpanels** correspondentes.
+
+### Ordem e agrupamento de campos (`ordem` / `nrSeqGrupo` / `row`)
+
+A posição de um campo no formulário de detalhe é definida **exclusivamente no JSON** — não há como reposicionar em runtime (ver `frontend-framework.md`).
+
+| Propriedade | Efeito |
+|---|---|
+| `ordem` | Ordem de exibição do campo dentro do seu grupo/linha. Menor `ordem` aparece primeiro. |
+| `nrSeqGrupo` | Agrupa o campo a um grupo visual. Ao mover um campo para fora do seu grupo original, pode ser necessário **remover** o `nrSeqGrupo` para que ele passe a respeitar apenas a `ordem` global. |
+| `row` | Linha do campo no layout do detalhe. |
+
+> **Reposicionar um campo:** ajustar o `ordem` (e, se preciso, remover o `nrSeqGrupo`) no JSON do dbpanel. Essa alteração precisa ser replicada em **todas as visões** da função (ver seção Visões), pois cada visão tem seu próprio arquivo de dbpanel com valores de `ordem` independentes.
+
+---
+
+## Visões (localidades) — múltiplos dbpanels por função
+
+Uma mesma função pode ter **vários arquivos de dbpanel**, um por **visão** (view). A visão exibida ao usuário é escolhida conforme a **localidade** (país/região) do estabelecimento — cadastro nas propriedades do usuário. Cada visão tem seu próprio JSON com valores independentes de `ordem`, `nrSeqGrupo`, `tooltipExpressionCode`, etc.
+
+```
+corconf1/dbpanels/
+  77340.json    # visão base (Brasil e países sem visão própria)
+  116120.json   # Colômbia
+  109367.json   # Argentina
+  101466.json   # Global
+  ...
+```
+
+> **Consequência prática:** qualquer alteração de layout (mover campo, trocar Info button, ocultar coluna) que deva valer para todos os usuários precisa ser replicada em **cada arquivo de visão** da função. Alterar apenas o dbpanel base corrige somente as localidades que caem na visão base — as demais visões continuam com o comportamento antigo. Ao investigar por que um ajuste "não apareceu" para um usuário, verificar qual visão a localidade dele seleciona.
+
+> A mesma função também pode renderizar diferente entre ambientes se os estabelecimentos tiverem localidades distintas (ex: ambiente local com localidade Global usando `101466.json`, enquanto outro ambiente usa a visão base `77340.json`).
 
 ---
 
