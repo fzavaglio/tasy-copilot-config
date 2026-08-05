@@ -183,7 +183,7 @@ Evitar `angular.equals(a, b)` e afins para comparações triviais — preferir o
 
 | ❌ Evitar | ✅ Preferir |
 |---|---|
-| `return angular.equals(true, res?.dados);` | `return res?.dados === true;` |
+| `return angular.equals(true, res.dados);` | `return res.dados === true;` |
 | `if (angular.equals('S', valor))` | `if (valor === 'S')` |
 
 ### Não passar `await` diretamente como argumento
@@ -199,9 +199,28 @@ const isArrendamento = await this.isTipoArrendamento();
 this.applyArrendamentoLayout(isArrendamento);
 ```
 
-### `await` só sobre Promises; usar optional chaining
+### `await` só sobre Promises
 
-- Não usar `await` sobre método **síncrono** (que não retorna Promise) — o SonarQube reprova (regra S4123, "redundant await on non-promise"). Só marcar um método como `async`/aguardá-lo quando ele realmente faz trabalho assíncrono.
-- Preferir **optional chaining** a `x && x.prop` (SonarQube S6582): usar `res?.dados` em vez de `res && res.dados`.
+Não usar `await` sobre método **síncrono** (que não retorna Promise) — o SonarQube reprova (regra S4123, "redundant await on non-promise"). Só marcar um método como `async`/aguardá-lo quando ele realmente faz trabalho assíncrono.
 
-> Verificar essas violações localmente com o SonarQube MCP (`analyze_code_snippet`) **antes** de abrir/atualizar o PR, para não depender do ciclo lento dos checks do pipeline.
+### ⚠️ Optional chaining (`?.`) NÃO é suportado pelo build deste frontend
+
+O babel-loader deste projeto **não parseia optional chaining** — usar `res?.dados` quebra o build com `Module parse failed: Unexpected token`. Isso gera um **conflito** com o SonarQube, que pela regra S6582 recomenda trocar `x && x.prop` por `x?.prop`.
+
+Resolver ambos (build + Sonar) com um **guard clause** + acesso direto, evitando tanto `?.` quanto o padrão `x && x.prop`:
+
+```js
+// ❌ Quebra o build (babel não suporta ?.)
+return res?.dados === true;
+
+// ❌ Dispara SonarQube S6582 ("prefer optional chain")
+return res && res.dados === true;
+
+// ✅ Compila e não dispara S6582
+if (!res) {
+  return false;
+}
+return res.dados === true;
+```
+
+> Verificar as violações de estilo localmente com o SonarQube MCP (`analyze_code_snippet`) **antes** de abrir/atualizar o PR, mas lembrar que o Sonar não conhece as limitações do build — quando uma sugestão do Sonar (ex: `?.`) for incompatível com o babel do projeto, priorizar o que compila e usar uma forma alternativa que também não dispare a regra (guard clause).
