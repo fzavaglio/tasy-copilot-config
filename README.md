@@ -74,4 +74,4 @@ scripts/package-customizations.ps1     # seed inicial a partir de ~/.copilot (us
 
 ## Contribuindo
 
-Veja o `CONTRIBUTING.md`. Em resumo: edite os arquivos em `.github/` e abra PR. Nunca commite segredos. Não regenere o repo a partir de um `~/.copilot` pessoal.
+Veja o `CONTRIBUTING.md`. Em resumo: edite os arquivos em `.github/` e faça o push. Nunca commite segredos. Não regenere o repo a partir de um `~/.copilot` pessoal.
