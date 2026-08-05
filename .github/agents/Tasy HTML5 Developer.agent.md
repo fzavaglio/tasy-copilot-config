@@ -81,6 +81,56 @@ Antes de postar qualquer comment no card ADO, **sempre perguntar**:
 
 ---
 
+## Análise Técnica de Card — Identificar Bug × Dúvida
+
+Quando o usuário solicitar uma **análise técnica** de um card (ex: "analise o card [LINK]", "faça a análise técnica deste card", "verifique se este card é um bug"), conduzir uma investigação que **critica** a documentação do card e produz uma conclusão objetiva. Passos:
+
+### 1. Obter o máximo de contexto do card
+- Ler o work item completo (campos, `Microsoft.VSTS.TCM.ReproSteps`, versão, função/`FunctionID`, aplicação/plataforma) e **todas as discussions/comments**.
+- Identificar a função envolvida (`cd_funcao`) e carregar a skill do módulo correspondente antes de investigar a regra de negócio.
+- Considerar anexos (vídeos, prints) e o passo a passo de reprodução informado. Quando o relato do card divergir do que o usuário descrever na sessão, priorizar o esclarecimento do usuário.
+
+### 2. Não confiar 100% na documentação do card
+- Tratar as afirmações do card (inclusive a análise do suporte N1/N2) como **hipóteses a validar**, não como fatos. Expressões como "Acredito que...", "deveria...", e os campos `IsDefect = False` / "Suspected Design Defect" indicam que ainda não há defeito confirmado.
+- **Exceção:** discussions postadas por um **especialista de negócio** podem ser tratadas como confiáveis. Em dúvida sobre quem postou, consultar o usuário.
+- Validar a hipótese com **evidência real**: consulta ao banco (MCP Oracle), leitura de código (frontend/backend/PL-SQL) e, quando possível, **reprodução no sistema** (ver skill `tasy-playwright` / `browser-tools.md`).
+
+### 3. Classificar: Bug × Dúvida do cliente
+- **Bug:** há divergência comprovada entre o comportamento observado e o esperado, sustentada por evidência (dado, código ou reprodução).
+- **Dúvida / configuração / uso:** o comportamento está correto conforme a regra de negócio; o relato decorre de interpretação, parametrização ou uso.
+- **Em caso de dúvida** (não é possível classificar com clareza), **solicitar o apoio do usuário na investigação** antes de concluir — apresentar o que já foi levantado e as hipóteses em aberto. Nunca "forçar" uma conclusão.
+
+### 4. Registrar a conclusão no card (comment "Análise técnica")
+Ao finalizar a investigação, postar um comment objetivo e resumido para dar direção ao programador. Seguir as regras de confirmação de "Documentação no Card ADO" (perguntar antes de postar) e usar **HTML** (o ADO não renderiza Markdown; aplicar `<br>`, `<b>`, `<div>`, escapar `>` → `&gt;` e `"` → `&quot;`, e passar `"format": "html"`). Estrutura-base:
+
+- **Título:** `Análise técnica`
+- **Reprodução:** ambiente e dados usados (ex: OS/registro) e o comportamento observado. Incluir evidência resumida quando fizer sentido (ex: contadores por cenário).
+- **Causa raiz:** o que provoca o problema em termos de dado/regra/campo (ex: `IE_SITUACAO` nulo + comparação exata do filtro).
+- **Origem do problema** (quando aplicável): por que o estado incorreto surge/recorre (ex: caminho de inserção sem default), com a data do caso mais recente se relevante.
+- **Direção de correção** (quando já identificada): resumo objetivo do que ajustar.
+
+> Se a conclusão for **dúvida/uso** (não é bug), o comment deve deixar isso explícito e orientar o caminho correto (parametrização, procedimento), sem propor alteração de código.
+
+**Exemplo de conteúdo (base de referência para o texto do comment):**
+
+```
+Análise técnica
+
+Reproduzido no ambiente Financial Accounting, utilizando a OS 142852: no painel "Avaliação" da Ordem de Serviço (Nova), o filtro Situação não traz registros ao selecionar "Ativo" ou "Inativo", retornando resultados apenas com "Ambos".
+
+Ativo → 0 registros
+Inativo → 0 registros
+Ambos → 21 registros
+
+Causa raiz: os registros em MAN_ORDEM_SERV_AVALIACAO estão com IE_SITUACAO nulo. O filtro de situação faz comparação exata (IE_SITUACAO = 'A' / = 'I'); registros nulos não batem em nenhuma das opções e só aparecem em "Ambos" (que não aplica filtro de situação). Como o filtro abre no padrão "Ativo", o painel aparece vazio.
+
+Origem dos registros nulos: a geração automática das avaliações (procedures MAN_GERAR_AVAL_EQUIP_OS e MAN_GERAR_AVAL_ATIV_PREV_OS) já grava IE_SITUACAO = 'A'. Porém a adição manual pelo WDBPanel e a replicação de avaliações (MAN_REPLICAR_AVALIACAO_OS, que copia o valor da origem) deixam a coluna nula. Não existe default nem trigger populando IE_SITUACAO. Há registros nulos sendo criados de forma recorrente (mais recente observado em abr/2026).
+```
+
+> Este comment de "Análise técnica" é **distinto** dos 4 comments de encerramento (Template de defeito, Release Notes, Closure, Alterações Realizadas). É um registro de investigação/direção, postado **durante ou ao final da análise** — não substitui a documentação de closure, feita após a correção e abertura dos PRs.
+
+---
+
 ## Contexto do Sistema Tasy
 
 O **Sistema Tasy** é um sistema hospitalar modular. Cada função pertence a um módulo, e o prefixo do módulo identifica a área de negócio. Exemplos de prefixos:

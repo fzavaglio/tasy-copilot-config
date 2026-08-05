@@ -31,8 +31,59 @@ O MCP Oracle permite compilar e testar PL/SQL diretamente no banco sem precisar 
 **Limitações importantes:**
 - Funções de contexto de sessão da aplicação (`obter_estabelecimento_ativo`, `obter_perfil_ativo`, `wheb_usuario_pck.get_nm_usuario`) **não funcionam** fora da aplicação. Procedures que as chamam no início podem falhar ou retornar valores nulos em testes via banco — verificar se o fluxo testado as contorna (ex: `ie_vinculo_job_p = 'S'` ignora a restrição por estabelecimento)
 - O teste end-to-end completo (com vínculo efetivo de dados, execução de JOBs com contexto real) deve ser realizado via sistema no ambiente do cliente
+- **`execute_plsql_ddl` não aceita a barra final (`/`)** usada em scripts SQL*Plus após o `END nome_objeto;`. Enviar o código sem o `/` final — se incluído, a ferramenta retorna `PLS-00103: Encountered the symbol "/"` e o objeto fica `INVALID`. Sempre confirmar com `SELECT status FROM all_objects WHERE object_name = '<NOME>'` após compilar.
 
 > A regra de schema/prefixo por base (Dev × Financial) usada nas queries está documentada em `oracle-queries-log-data.md`.
+
+### ⚠️ Cuidado: `read_file` pode retornar conteúdo desatualizado após operações de git
+
+Após `git checkout`, `git stash pop`, `git cherry-pick` ou qualquer operação que troque o conteúdo de um arquivo **fora** das ferramentas de edição (via terminal), o `read_file` pode retornar uma versão em cache do arquivo, não o conteúdo real em disco. Isso já causou edições baseadas em premissas erradas nesta sessão.
+
+**Sempre confirmar o conteúdo real via terminal antes de editar após uma operação de git:**
+```powershell
+Select-String -Path <arquivo> -Pattern "<trecho a confirmar>" -Context 2,2
+# ou
+git show <branch>:<caminho/arquivo> | Select-String "<trecho>"
+```
+
+Se o texto buscado por `replace_string_in_file`/`multi_replace_string_in_file` não for encontrado (ou for encontrado onde não deveria), suspeitar de cache do `read_file` antes de assumir que o arquivo mudou de fato.
+
+---
+
+## Localizando quando um defeito foi introduzido — `OBJETO_SISTEMA_HIST` (base Dev)
+
+A tabela `tasy.OBJETO_SISTEMA_HIST` (base **Dev**) guarda o histórico completo de cada alteração de um objeto PL/SQL (procedure/function/trigger/etc.), com o código-fonte completo da versão em `DS_SCRIPT_CRIACAO` (tipo `LONG`).
+
+**Query para listar o histórico de um objeto** (do mais antigo para o mais recente):
+
+```sql
+SELECT nr_sequencia, dt_atualizacao, nm_usuario, nr_ordem_servico, nr_build, ds_versao_tasy
+FROM tasy.objeto_sistema_hist
+WHERE upper(nm_objeto) = '<NOME_OBJETO>'
+ORDER BY dt_atualizacao;
+```
+
+**Para obter o código-fonte de uma revisão específica:**
+
+```sql
+SELECT ds_script_criacao FROM tasy.objeto_sistema_hist WHERE nr_sequencia = <NR_SEQUENCIA>;
+```
+
+> `DS_SCRIPT_CRIACAO` é `LONG` — cada revisão deve ser consultada individualmente (uma por `SELECT`).
+
+### ⚠️ Regra crítica: usar busca binária, não varredura sequencial
+
+Com múltiplas revisões (ex: 10-20+), **nunca ler os registros um a um em sequência** do mais antigo ao mais recente — isso é O(n) e desperdiça chamadas quando o objeto tem muitas revisões.
+
+**Usar busca binária sobre a lista ordenada de revisões:**
+
+1. Listar todas as revisões ordenadas por `dt_atualizacao` (query acima)
+2. Ler o registro do **meio** da lista e verificar se a linha/trecho problemático já está presente
+3. Se a linha problemática **já está presente** → o defeito foi introduzido **antes** desse registro → repetir a busca na metade **anterior**
+4. Se a linha problemática **ainda não está presente** (código antigo/correto) → o defeito foi introduzido **depois** desse registro → repetir a busca na metade **posterior**
+5. Intercalar dessa forma até restar um intervalo de 1-2 registros consecutivos — a revisão que primeiro introduziu a linha é a causa raiz (registrar `dt_atualizacao`, `nm_usuario`, `nr_ordem_servico`)
+
+Isso reduz a investigação de O(n) leituras para O(log₂ n) — por exemplo, 15 revisões passam de ~9-15 leituras sequenciais para ~4 leituras com busca binária.
 
 ---
 
@@ -57,3 +108,17 @@ Ao implementar um fix baseado em trechos já existentes no mesmo arquivo:
 1. **Verificar se o trecho de referência também está correto** antes de copiar o padrão — o código legado pode repetir o mesmo erro em múltiplos blocos
 2. **Verificar na base como o dado é armazenado** antes de presumir pelo código (`execute_select_query` com amostras reais)
 3. O exemplo existente pode ser a própria origem do bug que está sendo corrigido
+
+---
+
+## ⚠️ Regra Crítica: autodeadlock (ORA-00060) em trigger com `PRAGMA AUTONOMOUS_TRANSACTION`
+
+Padrão de bug recorrente e de difícil diagnóstico: uma trigger `BEFORE UPDATE ... FOR EACH ROW` com `pragma autonomous_transaction` que chama (direta ou indiretamente) uma procedure que executa `UPDATE` + `COMMIT` na **mesma linha da mesma tabela** que está sendo atualizada pela transação principal.
+
+**Por que trava:** a transação principal já detém o lock da linha (está no meio do próprio `UPDATE` que disparou a trigger). A transação autônoma, que é uma sessão lógica separada, precisa desse mesmo lock para completar seu `UPDATE`/`COMMIT` — mas a principal só libera o lock quando a trigger retornar, e a trigger só retorna quando a transação autônoma completar. Deadlock garantido (`ORA-00060`), não depende de concorrência externa — reproduz de forma consistente sempre que esse caminho de código é executado.
+
+**Como identificar:** no stack trace do erro, procurar por uma trigger com `pragma autonomous_transaction` na cadeia de chamadas, e verificar se ela (ou uma procedure chamada por ela) faz `UPDATE`/`COMMIT` na própria tabela que a disparou.
+
+**Como corrigir:** nunca fazer `UPDATE` autônomo na mesma linha que dispara a trigger. Preferir alterar os valores via `:new.<campo>` dentro da própria trigger (sem `UPDATE`/`COMMIT` explícito) — é o padrão seguro já usado em outras partes do framework para esse mesmo tipo de ajuste.
+
+**Atenção a variáveis de contexto duplicadas:** se a trigger já validou uma condição (ex: parametrização por usuário) antes de chamar a procedure, verificar se a procedure chamada **não está revalidando a mesma condição com uma variável diferente** (ex: usuário da sessão vs. usuário gravado em um registro) — divergências assim fazem o código cair no branch perigoso mesmo quando a trigger já havia decidido pelo caminho seguro.

@@ -30,9 +30,8 @@ scripts/package-customizations.ps1     # seed inicial a partir de ~/.copilot (us
 
    > **Dica:** se quiser que essa combinação de pastas seja lembrada entre sessões, salve o workspace localmente como um arquivo `.code-workspace` (`File` > `Save Workspace As...`) — isso é pessoal, não precisa (nem deve) ser commitado no repositório, já que os caminhos das pastas variam de máquina para máquina.
 3. **Configure os MCP servers**: copie `mcp.json.example` para o seu `~/.copilot/mcp.json` e defina as variáveis de ambiente (PATs e senhas Oracle). Nunca commite valores reais.
-4. Ajuste o caminho local do executável do MCP do Azure DevOps.
-5. O MCP do **Playwright** (usado pela skill `tasy-playwright`) é configurado à parte, fora deste template.
-6. Selecione o agente **Tasy HTML5 Developer** no Copilot Chat.
+4. O MCP do **Playwright** (usado pela skill `tasy-playwright`) é configurado à parte, fora deste template.
+5. Selecione o agente **Tasy HTML5 Developer** no Copilot Chat.
 
 ## Variáveis de ambiente (MCP)
 
@@ -49,11 +48,3 @@ scripts/package-customizations.ps1     # seed inicial a partir de ~/.copilot (us
 ## Contribuindo
 
 Veja o `CONTRIBUTING.md`. Em resumo: edite os arquivos em `.github/` e abra PR. Nunca commite segredos. Não regenere o repo a partir de um `~/.copilot` pessoal.
-
-## O que foi deliberadamente excluído
-
-- Segredos (senhas Oracle, PATs) — substituídos por variáveis de ambiente no template.
-- Identidade pessoal — o agente trata referências possessivas como "usuário atual".
-- Skills genéricas não específicas deste agente (`java-quality`, `security-review`, `unit-test`, `v2-conventions`).
-- Servidores SonarQube do MCP (fora do escopo do agente).
-- Memória de repositório (`/memories/repo/`) — estado local por máquina.
