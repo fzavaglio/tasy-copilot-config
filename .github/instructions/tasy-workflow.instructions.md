@@ -381,12 +381,18 @@ A branch deve conter as alterações realizadas.
 #### Passo 2 — Criar branch de trabalho
 
 ```bash
-git checkout -b {NR_CARD}_{versao}
+# PR para pre_main (ou qa)
+git checkout -b {tipo}/{NR_CARD}
+
+# PR para uma versão
+git checkout -b {tipo}/{NR_CARD}/{versao}
 ```
 
+- `{tipo}` é definido pelo tipo do work item no ADO: **`feature`** para Feature/User Story, **`bug`** para Bug.
+- `{versao}` é o número da versão, sempre **sem o prefixo `5.xx.`** (ex: `1848`, `1845`, `1842`, `1838`), em todos os repositórios.
+- A branch de `pre_main` (e de `qa`) **não recebe sufixo de versão**.
 - **Nunca usar ponto** no nome da branch.
-- Padrão: número do card + versão resumida, separados por underline.
-- Exemplos: `700920_premain`, `700920_1848`, `700920_1845`
+- Exemplos: `feature/732567`, `feature/732567/1848`, `bug/700920`, `bug/700920/1845`
 
 #### Passo 3 — Adicionar apenas os arquivos alterados
 
@@ -425,7 +431,7 @@ git commit -n -m 'fix(tasyMan) Ajuste em man_ordem_servico AB#700000'
 #### Passo 5 — Push e abertura de PR
 
 ```bash
-git push origin {NR_CARD}_{versao}
+git push origin {tipo}/{NR_CARD}
 ```
 
 Após o push, abrir Pull Request para a branch de destino (`pre_main`, `qa` ou versão), preenchendo o template abaixo e adicionando a **label** correspondente à branch de destino:
@@ -455,6 +461,8 @@ $env:Path += ";C:\Program Files\GitHub CLI"
 ```
 
 **Label `KEEP_OPEN`:** versões que estão em período de verificação (aguardando aprovação para merge) devem receber a label `KEEP_OPEN` além da label de versão. Aplicar nos PRs de frontend e backend dessas versões para sinalizar que não devem ser mergeados ainda. Atualmente a versão em verificação é a 1848.
+
+> **O nome da label é exatamente `KEEP_OPEN`** — maiúsculas e underscore. Variações como `KEEP OPEN`, `keep open`, `keep_open` ou `Keep Open` **não têm efeito nenhum** em manter o PR aberto. Sempre aplicar a label com essa grafia exata, mesmo que o usuário a mencione de outra forma na conversa (ex: "adiciona a keep open"). Se o comando `gh` falhar informando que a label não existe, **não criar** uma label nova nem tentar variações — verificar as labels disponíveis no repositório com `gh label list --repo philips-internal/{repositorio} --search KEEP`.
 
 ```bash
 gh pr edit {NR_PR} --repo philips-internal/{repositorio} --add-label "KEEP_OPEN"
@@ -523,12 +531,12 @@ Para cada versão, repetir o fluxo abaixo. O hash do commit deve ser o gerado no
 ```bash
 git checkout 5.06.1848
 git pull origin 5.06.1848
-git checkout -b {NR_CARD}_{versao}
+git checkout -b {tipo}/{NR_CARD}/{versao}
 git cherry-pick {HASH_COMMIT}
-git push origin {NR_CARD}_{versao}
+git push origin {tipo}/{NR_CARD}/{versao}
 ```
 
-Exemplos de nome de branch: `700920_1848`, `700920_1845`, `700920_1842`.
+Exemplos de nome de branch: `feature/732567/1848`, `bug/700920/1845`, `bug/700920/1842`.
 
 > **Conflitos ao trocar de branch:** pode ocorrer conflito com arquivos locais modificados (ex: `configuration.yml`, `context.xml` no backend) ao executar o `checkout`. Neste caso, fazer stash somente dos arquivos de configuração local:
 > ```bash
@@ -547,13 +555,13 @@ Exemplos de nome de branch: `700920_1848`, `700920_1845`, `700920_1842`.
 Quando a branch de versão já tem um commit do card (ex: fix original) e é necessário incluir um **ajuste complementar** vindo de um novo PR da `pre_main`, **não usar `git reset --hard`**. Fazer o cherry-pick diretamente sobre o commit existente:
 
 ```bash
-git checkout {NR_CARD}_{versao}
+git checkout {tipo}/{NR_CARD}/{versao}
 git cherry-pick {HASH_NOVO_COMMIT}
-git push origin {NR_CARD}_{versao}
+git push origin {tipo}/{NR_CARD}/{versao}
 ```
 
 O cherry-pick é aplicado sobre o estado pós-commit-antigo, que já corresponde ao contexto do novo commit — evitando conflitos. O PR ficará com **2 commits**, o que é correto e rastreável.
 
 Usar `git reset --hard` + cherry-pick apenas quando o commit antigo **não deve constar** no histórico (estava errado e deve ser substituído). Nesse caso conflitos são esperados pois o contexto da base diverge.
 
-> **REGRA CRÍTICA — Um único PR por card por versão:** Nunca abrir um segundo PR para a mesma versão e mesmo card. Se já existe um PR aberto (ex: `723247_1848` → PR #109922), todos os commits complementares devem ser adicionados à branch existente via cherry-pick — sem abrir nova branch ou novo PR. Isso vale mesmo quando o ajuste vem de uma contexto diferente (ex: correção de outro cenário do mesmo card). Antes de abrir qualquer PR de versão, verificar se já existe um PR aberto para aquela versão e card. Só abrir um segundo PR se o PR original já tiver sido mergeado.
+> **REGRA CRÍTICA — Um único PR por card por versão:** Nunca abrir um segundo PR para a mesma versão e mesmo card. Se já existe um PR aberto (ex: `bug/723247/1848` → PR #109922), todos os commits complementares devem ser adicionados à branch existente via cherry-pick — sem abrir nova branch ou novo PR. Isso vale mesmo quando o ajuste vem de uma contexto diferente (ex: correção de outro cenário do mesmo card). Antes de abrir qualquer PR de versão, verificar se já existe um PR aberto para aquela versão e card. Só abrir um segundo PR se o PR original já tiver sido mergeado.

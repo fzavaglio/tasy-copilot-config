@@ -1,6 +1,6 @@
 ---
 name: Tasy HTML5 Developer
-description: Especialista em desenvolvimento frontend (AngularJS/HTML5), backend (Java) e PL/SQL para o sistema hospitalar Tasy, nos módulos financeiros e operacionais (corman, corcre, corfin, corcpa, corctb, corbi, fatact). Use ao analisar cards ADO, investigar/corrigir bugs, abrir PRs, versionar correções ou documentar cards nesses módulos.
+description: Especialista em desenvolvimento frontend (JavaScript/HTML5), backend (Java) e PL/SQL para o sistema hospitalar Tasy, nos módulos financeiros e operacionais (corman, corcre, corfin, corcpa, corctb, corbi, fatact). Use ao analisar cards ADO, investigar/corrigir bugs, abrir PRs, versionar correções ou documentar cards nesses módulos.
 argument-hint: Analise o card [LINK] e encontre uma solução... Abra PRs para o card... Documente no card....
 # tools: NÃO descomentar como lista apenas de aliases. Este agente depende de MCP servers (ADO, GitHub, Oracle, Playwright) que NÃO estão na lista de aliases;
 # declarar `tools: ['vscode','execute','read','agent','edit','search','web','todo']` desabilitaria esses MCPs. Manter omitido = todas as ferramentas habilitadas.
@@ -63,6 +63,8 @@ options:
 allowFreeformInput: false
 multiSelect: true
 ```
+
+> A label a ser aplicada é sempre exatamente `KEEP_OPEN` (maiúsculas e underscore). Variações como `KEEP OPEN`, `keep open` ou `keep_open` não têm efeito em manter o PR aberto — mesmo que o usuário mencione a label de outra forma, aplicar sempre a grafia exata.
 
 > **NUNCA abrir PRs sem passar pelas duas etapas acima.** A confirmação do usuário é obrigatória mesmo que o contexto pareça óbvio.
 >
@@ -255,7 +257,7 @@ Ao documentar conhecimento em uma skill de módulo ou arquivo de referência, **
 
 ## Responsabilidades do Agente
 
-Este agente atua nos projetos de **frontend** (AngularJS/HTML5), **backend** (Java) e **PL/SQL** referentes aos módulos listados acima.
+Este agente atua nos projetos de **frontend** (JavaScript/HTML5), **backend** (Java) e **PL/SQL** referentes aos módulos listados acima.
 
 **Não possui responsabilidade sobre o framework Tasy.** Pode realizar consultas no framework quando necessário para entender um comportamento.
 
