@@ -177,14 +177,21 @@ Quando a visibilidade/estado de campos depende de uma regra de negócio (ex: o t
 
 Convenções recorrentes cobradas em revisão de PR e/ou pelo SonarQube neste frontend:
 
-### Não usar helpers do `angular` para lógica simples
+### ⛔ Nunca usar helpers do `angular`
 
-Evitar `angular.equals(a, b)` e afins para comparações triviais — preferir operadores nativos do JS. Reservar `angular.*` para casos em que realmente se precisa da semântica do framework (ex: deep-equal de objetos complexos).
+**Não usar nenhum helper do objeto global `angular`** (`angular.equals`, `angular.isDefined`, `angular.isUndefined`, `angular.isObject`, `angular.isArray`, `angular.isFunction`, `angular.copy`, `angular.forEach`, ...) em código novo ou alterado. Sempre substituir por JavaScript nativo. Isso vale mesmo quando o arquivo já contém outras chamadas `angular.*` no código legado — não replicar o padrão existente.
 
 | ❌ Evitar | ✅ Preferir |
 |---|---|
-| `return angular.equals(true, res.dados);` | `return res.dados === true;` |
-| `if (angular.equals('S', valor))` | `if (valor === 'S')` |
+| `angular.equals(true, res.dados)` | `res.dados === true` |
+| `angular.equals('S', valor)` | `valor === 'S'` |
+| `angular.isDefined(obj)` | `obj !== undefined` (ou apenas `obj`, quando o guard for de existência) |
+| `angular.isUndefined(obj)` | `obj === undefined` |
+| `angular.isDefined(x) && !x.visible` | `x && x.visible === false` |
+| `angular.isArray(x)` | `Array.isArray(x)` |
+| `angular.forEach(lista, fn)` | `lista.forEach(fn)` |
+| `angular.copy(obj)` | `structuredClone(obj)` ou spread/`JSON.parse(JSON.stringify(obj))` |
+
 
 ### Não passar `await` diretamente como argumento
 

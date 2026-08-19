@@ -122,3 +122,35 @@ Padrão de bug recorrente e de difícil diagnóstico: uma trigger `BEFORE UPDATE
 **Como corrigir:** nunca fazer `UPDATE` autônomo na mesma linha que dispara a trigger. Preferir alterar os valores via `:new.<campo>` dentro da própria trigger (sem `UPDATE`/`COMMIT` explícito) — é o padrão seguro já usado em outras partes do framework para esse mesmo tipo de ajuste.
 
 **Atenção a variáveis de contexto duplicadas:** se a trigger já validou uma condição (ex: parametrização por usuário) antes de chamar a procedure, verificar se a procedure chamada **não está revalidando a mesma condição com uma variável diferente** (ex: usuário da sessão vs. usuário gravado em um registro) — divergências assim fazem o código cair no branch perigoso mesmo quando a trigger já havia decidido pelo caminho seguro.
+
+---
+
+## ⚠️ Regra Crítica: coluna `LONG` no banco permite até 2 GB, mas variável PL/SQL `LONG` trava em 32760 bytes
+
+Colunas de tabela do tipo `LONG` (ex: `DS_RELAT_TECNICO`, `DS_SCRIPT_CRIACAO`) suportam até 2 GB de dado armazenado. Porém, o subtype `LONG` usado em variáveis PL/SQL (declarado no pacote `STANDARD` como `subtype LONG is VARCHAR2(32760)`) trava em **32760 bytes** — bem abaixo do limite da coluna.
+
+Isso significa que uma procedure que declara uma variável local `LONG` (ou `VARCHAR2` de tamanho fixo menor, ex: `VARCHAR2(32000)`) para manipular o conteúdo de uma coluna `LONG` pode estourar com `ORA-06502: PL/SQL: numeric or value error: character string buffer too small` quando o dado real ultrapassar esse limite — mesmo que o dado já esteja gravado corretamente na tabela.
+
+**Confirmado empiricamente:**
+```sql
+DECLARE
+    v_long LONG;
+BEGIN
+    v_long := RPAD('A', 32760, 'A');   -- OK
+    v_long := v_long || 'B';            -- 32761 bytes
+END;
+-- ORA-06502: PL/SQL: numeric or value error: character string buffer too small
+```
+
+**Confirmado na documentação oficial** (Oracle Database PL/SQL Language Reference, "LONG and LONG RAW Data Types"): "the maximum size of a LONG value is 32,760 bytes (as opposed to 32,767 bytes)" e "you cannot retrieve a value longer than 32,760 bytes from a LONG column into a LONG variable" — mesmo a coluna suportando até 2 GB. A própria Oracle recomenda usar `CLOB`/`NCLOB` em vez de `LONG` para aplicações novas (exigiria `ALTER TABLE`).
+
+**Ao investigar um `ORA-06502` envolvendo uma coluna `LONG`:** verificar o tamanho real do dado armazenado (`LENGTH(coluna)`) e comparar com o tamanho da variável/parâmetro `VARCHAR2`/`LONG` usado na procedure. Se o dado exceder ~32760 bytes, o limite é do **tipo PL/SQL**, não da coluna.
+
+**Alternativa sem alterar a tabela (sem `ALTER TABLE`):** o pacote `DBMS_SQL` tem `DEFINE_COLUMN_LONG` + `COLUMN_VALUE_LONG`, feitos exatamente para ler uma coluna `LONG` **em pedaços** (parâmetros `offset`/`length`), sem nunca carregar o valor inteiro em uma única variável escalar PL/SQL:
+
+1. Abrir cursor via `DBMS_SQL.OPEN_CURSOR` / `PARSE` / `EXECUTE` do `SELECT` da coluna `LONG`.
+2. Chamar `DBMS_SQL.DEFINE_COLUMN_LONG` para a posição da coluna (antes do fetch).
+3. Após `FETCH_ROWS`, chamar `DBMS_SQL.COLUMN_VALUE_LONG` em loop, avançando o `offset` a cada chamada, até `value_length` retornar 0.
+4. Acumular cada pedaço em um **`CLOB` temporário** (`DBMS_LOB.CREATETEMPORARY` + `DBMS_LOB.WRITEAPPEND`) — `CLOB` não tem o limite de 32760/32767 bytes dos tipos escalares PL/SQL.
+
+Esse padrão resolveria tecnicamente o card [507792](https://dev.azure.com/emr-cm/EMR/_workitems/edit/507792) (processar o histórico grande via `CLOB`/`DBMS_LOB` em vez de `VARCHAR2(32000)` na "Comunicar Histórico Executor"), sem exigir `ALTER TABLE` em `MAN_ORDEM_SERV_TECNICO`. O card foi fechado sem fix/como doubt, mas essa é a solução técnica caso o caso seja retomado — ver workaround já orientado ao cliente (tela de Anexos) na skill `corman-os`.

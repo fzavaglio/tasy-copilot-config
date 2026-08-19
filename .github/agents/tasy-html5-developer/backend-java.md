@@ -104,6 +104,27 @@ Todos os enums implementam `getCodeByDesc(String desc)` — que busca o enum pel
 
 > Para adicionar uma nova procedure/function/query acessível pelo frontend, basta incluir a entrada no enum correspondente com o código do objeto em `dic_objeto`.
 
+> **Códigos de procedure/function/query são reutilizáveis entre funções.** O código numérico (ex: `58361`) referencia um objeto do Dicionário que **não pertence exclusivamente à função que o registrou** — qualquer função pode invocá-lo pelo mesmo código, desde que o conheça. Ao portar uma tela de uma função de referência (ex: migrar telas de `corCpaEF` para `corConF1`), **verificar primeiro se a procedure/query já está registrada com o mesmo nome no enum da função de origem** — se sim, reaproveitar o código diretamente no enum da função nova, em vez de solicitar um novo cadastro no Dicionário. Só é necessário cadastrar um novo objeto quando a função de origem realmente não possui uma ação equivalente.
+> - **Atenção:** o código de uma procedure **não corresponde a `DIC_OBJETO.NR_SEQUENCIA`** (esse ID só é confiável para objetos do tipo consulta/SQL). Não é possível confirmar um código de procedure via consulta direta a `DIC_OBJETO` no Oracle — a fonte confiável é o enum Java da função de origem (`CorXxxServidorCallEnum`) e, quando necessário, o `schematics` da função de origem (procurar por `"procedureCode"` nos eventos `"eventAction": "PROC"` dos `MENUITEM`, que também referenciam o mesmo código e mostram os nomes exatos dos parâmetros esperados, incluindo o sufixo `_P`).
+> - Os parâmetros de uma procedure chamada via `executeProcedure` devem usar os **nomes exatos com sufixo `_P`** (ex: `NR_SEQ_CONTRATO_P`, `NM_USUARIO_P`) — esses nomes são fixos no cadastro do Dicionário e não podem ser inferidos pelo nome da coluna de banco. Confirmar sempre os nomes exatos comparando com o uso já existente na função de origem (JS) ou com os `parameterName` do schematics.
+> - O parâmetro `NM_USUARIO_P`, quando existe no cadastro, deve ser passado explicitamente pelo JS como `this.getUser().nmUsuario` — não é preenchido automaticamente quando a chamada vem de `executeProcedure` (diferente de quando o evento é disparado via schematics `PROC`, onde o framework injeta `NM_USUARIO` automaticamente por ser `originParam: SYSTEM`).
+
+---
+
+## Métodos genéricos de consulta na classe Servidor
+
+Além de `executeQueryAsHashMap` (retorna todas as colunas da consulta como `HashMap`) e `executeQueryAsList` (retorna várias linhas), existe um padrão para consultas que retornam **um único valor escalar** (ex: um `count(*)` sem necessidade de alias de coluna) — usado, por exemplo, pelas telas de Empréstimos e Financiamentos (`corCpaEF`):
+
+```java
+public String executeQuery(String desc, HashMap params) throws Exception {
+    return UServPac.validaString(wConsulta.executaConsultaCampo(CorXxxServidorCallEnum.getCodeByDesc(desc), params));
+}
+```
+
+- `wConsulta.executaConsultaCampo(code, params)` executa a consulta registrada em `dic_objeto` e retorna **apenas o valor da primeira coluna da primeira linha** (sem precisar de alias na SQL, ex: `select count(*) from tabela where ...` funciona sem alterações).
+- O frontend correspondente (`XxxService.js`) expõe `executeQuery(id, params)` chamando `sendRequest('executeQuery', ...)`, e o valor retornado chega como `resultado.dados` (string) no JS — diferente de `executeQueryAsHashMap`, cujo retorno é um objeto com chaves por nome de coluna.
+- Esse método **não aparece explicitamente em todas as classes Servidor** — precisa ser adicionado manualmente quando a função ainda não o possui (ele não é herdado de `AbstractWhebServidor`). Ao portar uma consulta de contagem de uma função de referência, verificar se a classe Servidor de origem já tem esse método antes de assumir que só existe `executeQueryAsHashMap`.
+
 ---
 
 ## Classes de Action
