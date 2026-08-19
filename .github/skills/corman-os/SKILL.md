@@ -284,3 +284,11 @@ Cada visão da OS tem seu próprio painel de histórico técnico (campo rich tex
 - **Auto-save removido:** o `onBlur` do WRE chamava `saveRecord()` direto em grid (gate `canGridChange`, setado com um `focus` global indefinido → sempre truthy). Corrigido: removido o `saveRecord()` e o `canGridChange`; mantida só a marcação de dirty (`getDetailHandler().getForm().$setDirty(true)`) — a gravação passa a ser só pelo botão Salvar.
 - **Padrão irmão:** Qualidade e BSC já fazem `setInternalReadOnly(true)` em grid no `onSelectionChange` (querem o texto read-only em grid). A visão Manutenção não gerenciava esse flag antes do card 734952.
 - **Comparação:** na função "Comunicação Interna" (corSisF8, cd_funcao 87) o rich text `DS_COMUNICADO` é editável em grid sem tratamento algum — porque o campo está no próprio painel/grid (não é preview de detalhe de master-detail).
+
+### Limite de tamanho do histórico ao anexar imagens — opção "Comunicar Histórico Executor" (card 507792)
+
+`DS_RELAT_TECNICO` (histórico técnico) é uma coluna `LONG` — suporta até 2 GB de dado na tabela. Porém, ao criar um histórico com uma imagem embutida (print de tela inteira ou imagem grande) e usar a opção de mouse **"Comunicar Histórico Executor"**, a procedure `MAN_COMUNICAR_HISTORICO` manipula o conteúdo em uma variável local `VARCHAR2(32000)` — bem abaixo do que o texto gerado pode atingir (chegou a 300.660 caracteres em base64 no caso reportado). O resultado é `ORA-06502: PL/SQL: erro numérico ou de valor` na procedure.
+
+Esse limite é do **tipo PL/SQL** (`LONG`/`VARCHAR2` travam em 32760 bytes mesmo com coluna `LONG` na tabela — ver regra genérica em `plsql-workflow.md`), não um bug pontual de tamanho de buffer fácil de aumentar. O card foi classificado como **Doubt** (não é bug) e fechado **sem fix** (`Custom.VersionFixed = "No Fix"`).
+
+**Orientação ao cliente (workaround já disponível):** usar a tela de **Anexos** para imagens grandes — os arquivos anexados lá também são enviados pelo mesmo processo da opção "Comunicar Histórico Executor", sem passar pelo limite de texto do histórico.
