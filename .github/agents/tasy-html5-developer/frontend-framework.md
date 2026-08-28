@@ -231,3 +231,22 @@ return res.dados === true;
 ```
 
 > Verificar as violações de estilo localmente com o SonarQube MCP (`analyze_code_snippet`) **antes** de abrir/atualizar o PR, mas lembrar que o Sonar não conhece as limitações do build — quando uma sugestão do Sonar (ex: `?.`) for incompatível com o babel do projeto, priorizar o que compila e usar uma forma alternativa que também não dispare a regra (guard clause).
+
+### Máximo de parâmetros de função/método (regra S107)
+
+O SonarQube reprova métodos/funções com mais de **7 parâmetros** (`javascript:S107`, "too many parameters"). Quando um método precisar agregar muitos dados (comum em handlers de resultado de integrações externas, ex: retorno de TEF/TPV), **agrupar os valores em um único parâmetro objeto** (`context`) em vez de passá-los como parâmetros posicionais separados — desestruturar o objeto no início do método:
+
+```js
+// ❌ Reprovado pelo Sonar (8 parâmetros)
+async insertPayCardTPV(nrSequenciaTarjeta, typePayment, bin, ultimosDigitos, text, seqMovCartao, seguimientoResp, autorizacion) { ... }
+
+// ✅ Um único parâmetro objeto
+async insertPayCardTPV(context) {
+  const { nrSequenciaTarjeta, typePayment, bin, ultimosDigitos, text, seqMovCartao, seguimientoResp, autorizacion } = context;
+  ...
+}
+```
+
+### Consultando issues do SonarQube de um PR já aberto
+
+Ao usar `search_sonar_issues_in_projects` (ou `mcp_sonarqube-mc2_*`/`mcp_sonarqube-mcp_*` equivalentes) para investigar issues de um PR específico, o parâmetro `pullRequest` espera o **número do PR no GitHub** (ex: `229333`), não o nome da branch. O PR precisa já ter sido analisado pelo pipeline de CI (conferir o status `sonarqube` do PR via GitHub, ex: `pull_request_read`/`get_status`) antes que os resultados apareçam — se a análise ainda não rodou, a consulta retorna vazio mesmo com issues reais presentes no código.

@@ -1,13 +1,28 @@
 # Oracle — Schemas (Dev × Financial) e Rastreamento via log_data
 
-> Referência do agente **Tasy HTML5 Developer**. Carregar sempre que for executar consultas/scripts PL/SQL avulsos, documentar releases (Comment 4 do ADO) ou investigar alterações de dicionário. Estas informações ficam juntas porque documentação de releases e scripts de investigação normalmente precisam das duas bases (Dev para `AJUSTE_VERSAO`/`parametro_funcao`, Financial para `log_data`).
+> Referência do agente **Tasy HTML5 Developer**. Carregar sempre que for executar consultas/scripts PL/SQL avulsos, documentar releases (Comment 4 do ADO) ou investigar alterações de dicionário.
+
+## Regra de preferência — Financial por padrão
+
+> **SEMPRE usar a base Financial (`mcp_oracle2_*`) para desenvolvimento**: investigação de bug, consulta de dados de teste, verificação de valores efetivos de parâmetro de função, exploração de schema/tabelas de negócio, testes de query avulsa, etc. Não escolher Dev "por hábito" ou porque outra sessão usou Dev antes — o padrão é sempre Financial a menos que o caso se enquadre exatamente em uma das exceções abaixo.
+
+**A base Dev (`mcp_oracle_*`) é restrita aos usos abaixo, já documentados explicitamente em outros arquivos deste agente:**
+
+| Uso permitido em Dev | Motivo | Referência |
+|---|---|---|
+| `AJUSTE_VERSAO` — releases de versão (Comment 4 do ADO) | Não existe equivalente/dado de release em Financial | `tasy-workflow.instructions.md` |
+| `OBJETO_SISTEMA_HIST` — histórico de revisão de objetos PL/SQL (rastrear quando um bug foi introduzido) | Fonte confiável de revisões de objetos PL/SQL; `git log`/GitHub não deve ser usado para isso | `plsql-workflow.md`, `tasy-workflow.instructions.md` |
+| `IE_SITUACAO_HTML5` / `function_release_note` — verificar se um parâmetro está ativo no HTML5 e ler release notes de depreciação de parâmetro | Documentação de depreciação é mantida em Dev | `parametrizacao.md` |
+| `log_data` (alterações de dicionário) | **Exceção invertida** — usar sempre **Financial**, a tabela em Dev está vazia | ver seção abaixo |
+
+Qualquer outra consulta (valores atuais de `FUNCAO_PARAMETRO`, dados de paciente/atendimento/título, exploração de schema, testes de procedure, etc.) deve ser feita em **Financial**, mesmo que a tarefa também envolva alguma das exceções acima — usar Dev só para a parte específica documentada, o restante da investigação continua em Financial.
 
 ## Schema nas queries — regra obrigatória
 
 | Como o usuário chama | Tool prefix | Usuário da sessão | Prefixo nas queries |
 |---|---|---|---|
-| "base financial" / Financial | `mcp_oracle2_*` | `Tasy` | sem prefixo |
-| "base dev" / Dev | `mcp_oracle_*` | `wheb_readonly` | `tasy.` obrigatório |
+| "base financial" / Financial (padrão) | `mcp_oracle2_*` | `Tasy` | sem prefixo |
+| "base dev" / Dev (só para as exceções acima) | `mcp_oracle_*` | `wheb_readonly` | `tasy.` obrigatório |
 
 - A base **Financial** (`mcp_oracle2_*`) conecta com o usuário `Tasy`, portanto tabelas e objetos podem ser referenciados **sem prefixo de schema**.
 - A base **Dev** (`mcp_oracle_*`) conecta com o usuário `wheb_readonly`, cujo schema padrão de sessão **não é `TASY`**. Toda referência a tabela, view ou objeto PL/SQL na base Dev **deve ser prefixada com `tasy.`** (ex: `tasy.man_ordem_servico`, `tasy.titulo_pagar`). Nunca omitir o prefixo em queries na base Dev.
@@ -134,3 +149,13 @@ Para o card 721944, a query retornou (após consolidar 3 eventos intermediários
 | `FUNCAO_PARAMETRO` | CD_FUNCAO=299, NR_SEQUENCIA=209 | `IE_SITUACAO_HTML5` | `A` | `I` |
 
 > Este padrão de consulta é usado na seção "Comment 4 — Alterações Realizadas" de `tasy-workflow.instructions.md` (seção ALTERAÇÕES DE DICIONÁRIO).
+>
+> **Nota sobre a ferramenta MCP:** a query acima usa `WITH` (CTE), o que **`mcp_oracle2_execute_select_query` rejeita** (`Error: Only SELECT queries are allowed`). Reescrever como subqueries aninhadas (`SELECT ... FROM (SELECT ... FROM (...) x) y`) antes de executar via essa ferramenta — a versão com `WITH` acima serve como referência lógica da consulta, não como texto pronto para colar na ferramenta.
+
+### ⚠️ Cuidado: `service_order` pode ficar "grudado" na sessão e poluir a busca com ruído
+
+`tasy_dict_integration_pck.set_so(<nr_card>)` define o `service_order` gravado em **todo** evento de dicionário da sessão a partir daquele ponto — e esse valor **persiste até ser trocado**, mesmo que o usuário passe a editar registros de dicionário completamente diferentes/não relacionados ao card. Isso significa que uma busca por `DBMS_LOB.INSTR(log_info, '"service_order":"<NR_CARD>"') > 0` pode retornar **muito mais eventos do que os realmente relacionados ao card** (já visto: 170+ eventos de `DIC_OBJETO` sob um único SO, sendo só 1 realmente relevante).
+
+**Como mitigar:**
+- Se o volume de eventos retornado parecer desproporcional ao escopo do card, **não confiar cegamente no filtro por `service_order`** — cruzar com a PK/tabela esperada (ex: filtrar também por `table_name = 'DIC_OBJETO'` e pelo `NR_SEQUENCIA` já conhecido do objeto/query alterada) para isolar o evento real.
+- Quando já se sabe qual objeto foi alterado (ex: via investigação de código), é mais rápido e preciso consultar diretamente pelo `event_sequence`/PK específico do que confiar no filtro amplo por `service_order`.

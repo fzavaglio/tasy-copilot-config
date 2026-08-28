@@ -170,14 +170,16 @@ Sempre que encontrar **qualquer chamada de parâmetro de função** em qualquer 
 
 ### Passo 1 — Confirmar que o parâmetro está habilitado para HTML5
 
-Consultar na base **Dev** (`mcp_oracle_*`, ver `oracle-queries-log-data.md` para a regra de schema):
+Consultar na base **Dev** — exceção documentada à regra geral de preferir Financial, ver "Regra de preferência" em `oracle-queries-log-data.md` (`mcp_oracle_*`):
 
 ```sql
 SELECT nr_sequencia, ds_parametro, ie_situacao_html5, cd_funcao
-FROM tasy.parametro_funcao
+FROM tasy.funcao_parametro
 WHERE cd_funcao = <CD_FUNCAO>
   AND nr_sequencia = <NR_PARAMETRO>
 ```
+
+> Para consultar o **valor efetivo atual** do parâmetro (`VL_PARAMETRO`) durante testes/investigação (não a situação HTML5), usar **Financial** (`mcp_oracle2_*`, sem prefixo `tasy.`), conforme a regra geral.
 
 - `IE_SITUACAO_HTML5 = 'A'` → parâmetro ativo no HTML5, pode ser usado normalmente
 - `IE_SITUACAO_HTML5 = 'I'` → parâmetro inativo no HTML5 → executar o Passo 2
@@ -208,7 +210,34 @@ WHERE nr_seq_parametro = <NR_PARAMETRO>
 - **Sem release note:** o parâmetro está inativo mas sem justificativa registrada — sinalizar ao usuário e aguardar orientação antes de prosseguir.
 - **Parâmetro ativo (`A`):** prosseguir normalmente com a análise da lógica.
 
-> **Aplicação prática:** ao abrir um arquivo como `CancelarNotaCreditoWJMI.js` que usa `this.schematics.getParameter(17)`, verificar `parametro_funcao` para `nr_sequencia = 17` e o `cd_funcao` da função pai antes de qualquer análise do comportamento.
+> **Aplicação prática:** ao abrir um arquivo como `CancelarNotaCreditoWJMI.js` que usa `this.schematics.getParameter(17)`, verificar `funcao_parametro` para `nr_sequencia = 17` e o `cd_funcao` da função pai antes de qualquer análise do comportamento.
+
+---
+
+## Verificar o valor EFETIVO de um parâmetro para um usuário — sempre checar o override, nunca só o padrão
+
+> **Erro real cometido nesta sessão:** ao investigar os parâmetros 49/220 da função 813 para um usuário específico, consultei apenas `FUNCAO_PARAMETRO` (valor padrão/global da função) e concluí que Banregio não estava configurado. O usuário corrigiu: seu login tinha um **override por usuário** em `FUNCAO_PARAM_USUARIO` configurado deliberadamente para TPV — um valor válido e intencional, não um erro a corrigir. `FUNCAO_PARAMETRO.VL_PARAMETRO` é apenas o nível mais baixo da hierarquia (último fallback); nunca assumir que ele reflete o que está realmente ativo para um usuário real.
+
+**Sequência correta para resolver o valor efetivo de um parâmetro para um usuário:**
+
+1. **Checar `FUNCAO_PARAM_USUARIO`** primeiro (prioridade mais alta — override por usuário):
+   ```sql
+   SELECT nr_sequencia, vl_parametro, cd_estabelecimento, dt_atualizacao
+   FROM funcao_param_usuario
+   WHERE cd_funcao = <CD_FUNCAO> AND nr_sequencia = <NR_PARAMETRO>
+     AND upper(nm_usuario_param) = upper('<nm_usuario>')
+   ```
+   Se não houver registro, seguir para perfil/estabelecimento (tabelas equivalentes, quando existirem) e só então cair no valor padrão de `FUNCAO_PARAMETRO`.
+2. **Nunca supor o significado do valor bruto** (`'T'`, `'E'`, `'N'`, `'B'`...) pela prosa de uma documentação (ex: doc de módulo dizendo "parâmetro X = 'E' significa Y") sem confirmar no domínio real. Os mesmos códigos de letra têm significados completamente diferentes em domínios diferentes (ex: `'E'` = "TEF com Epson" no domínio do parâmetro 49, mas `'E'` = "Tasy Integration Engine (TIE)" no domínio do parâmetro 220 — mesma letra, função parecida, domínios distintos). Sempre traduzir via `VALOR_DOMINIO`:
+   ```sql
+   SELECT v.vl_dominio, v.ds_valor_dominio
+   FROM funcao_parametro f
+   JOIN valor_dominio v ON v.cd_dominio = f.cd_dominio
+   WHERE f.cd_funcao = <CD_FUNCAO> AND f.nr_sequencia = <NR_PARAMETRO>
+   ORDER BY v.vl_dominio
+   ```
+3. **Valores podem mudar durante a própria investigação** — se o usuário estiver ajustando o ambiente ao vivo (ex: testando Tasy Native), duas consultas seguidas ao mesmo parâmetro podem retornar valores diferentes. Conferir sempre `DT_ATUALIZACAO` do registro para saber se é realmente recente antes de reportar como fato estável.
+4. **Nunca sugerir alterar um parâmetro (global ou por usuário) sem antes confirmar com o usuário** que o valor atual é de fato uma configuração válida/intencional para outro fluxo (ex: TPV) — alterar sem essa confirmação pode quebrar um cenário de teste que o usuário já tinha propositalmente configurado.
 
 ---
 

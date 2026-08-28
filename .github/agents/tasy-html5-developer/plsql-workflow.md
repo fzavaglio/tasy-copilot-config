@@ -32,6 +32,7 @@ O MCP Oracle permite compilar e testar PL/SQL diretamente no banco sem precisar 
 - Funções de contexto de sessão da aplicação (`obter_estabelecimento_ativo`, `obter_perfil_ativo`, `wheb_usuario_pck.get_nm_usuario`) **não funcionam** fora da aplicação. Procedures que as chamam no início podem falhar ou retornar valores nulos em testes via banco — verificar se o fluxo testado as contorna (ex: `ie_vinculo_job_p = 'S'` ignora a restrição por estabelecimento)
 - O teste end-to-end completo (com vínculo efetivo de dados, execução de JOBs com contexto real) deve ser realizado via sistema no ambiente do cliente
 - **`execute_plsql_ddl` não aceita a barra final (`/`)** usada em scripts SQL*Plus após o `END nome_objeto;`. Enviar o código sem o `/` final — se incluído, a ferramenta retorna `PLS-00103: Encountered the symbol "/"` e o objeto fica `INVALID`. Sempre confirmar com `SELECT status FROM all_objects WHERE object_name = '<NOME>'` após compilar.
+- **`execute_select_query` rejeita queries iniciadas com `WITH`** (CTE) mesmo sendo sintaticamente um `SELECT` válido — retorna `Error: Only SELECT queries are allowed`. Reescrever a CTE como subquery aninhada (`SELECT ... FROM (SELECT ... FROM (...) x) y`) em vez de `WITH x AS (...)`.
 
 > A regra de schema/prefixo por base (Dev × Financial) usada nas queries está documentada em `oracle-queries-log-data.md`.
 
@@ -47,6 +48,35 @@ git show <branch>:<caminho/arquivo> | Select-String "<trecho>"
 ```
 
 Se o texto buscado por `replace_string_in_file`/`multi_replace_string_in_file` não for encontrado (ou for encontrado onde não deveria), suspeitar de cache do `read_file` antes de assumir que o arquivo mudou de fato.
+
+### ⚠️ Falso alarme comum: mojibake do terminal PowerShell ≠ corrupção real do arquivo
+
+Caracteres acentuados (UTF-8) exibidos via `Select-String`/saída de `git` no terminal PowerShell do Windows podem aparecer corrompidos (ex: `mant├®m a sele├º├úo`) por causa do codepage do console — **isso não significa que o arquivo real está corrompido**. Antes de investigar um "problema de acentuação" a partir do que aparece no terminal, confirmar o conteúdo real via uma fonte que preserve os bytes corretamente (`git show <branch>:<arquivo>` lido pelo `read_file`, ou o diff da API do GitHub) — na prática, o conteúdo commitado costuma estar em UTF-8/ASCII limpo mesmo quando o terminal exibe lixo.
+
+---
+
+## Localizando o SQL real de uma query nomeada (`executeQuery`/`executeQueryAsHash`)
+
+Quando o frontend chama `executeQuery('NOME_DA_QUERY', {})`/`executeQueryAsHash(...)` e a query **não** é um objeto PL/SQL (não aparece em `get_pl_sql_objects`), o SQL geralmente está registrado no **Schematics Legado** como uma "ação SQL" vinculada à função, não em um arquivo do repositório nem em um objeto de banco executável. Cadeia de tabelas para localizar o texto exato do SQL:
+
+```sql
+-- 1. Localizar o evento pelo nome da query usado no frontend
+SELECT NR_SEQUENCIA, NR_SEQ_OBJETO, IE_TIPO_EVENTO, NR_SEQ_DIC_OBJETO, CD_FUNCAO, NM_ACAO
+FROM OBJ_SCHEMATIC_EVENTO
+WHERE NM_ACAO = 'NOME_DA_QUERY';
+
+-- 2. A partir do NR_SEQUENCIA do evento, localizar a acao do tipo SQL
+SELECT NR_SEQUENCIA, NR_SEQ_OBJ_EVENTO, IE_ACAO_EVENTO, NR_SEQ_DIC_OBJ_SQL
+FROM OBJ_SCHEMATIC_EVENTO_ACAO
+WHERE NR_SEQ_OBJ_EVENTO = <NR_SEQUENCIA_DO_PASSO_1>;
+
+-- 3. O texto do SQL fica em DIC_OBJETO.DS_SQL
+SELECT NR_SEQUENCIA, NM_OBJETO, DS_SQL
+FROM DIC_OBJETO
+WHERE NR_SEQUENCIA = <NR_SEQ_DIC_OBJ_SQL_DO_PASSO_2>;
+```
+
+Essa cadeia (`OBJ_SCHEMATIC_EVENTO` → `OBJ_SCHEMATIC_EVENTO_ACAO` → `DIC_OBJETO.DS_SQL`) resolve o problema comum de não encontrar a query nem no repositório PL/SQL nem via `grep_search` no backend Java — muitas queries de telas legadas são SQL puro armazenado no dicionário, sem nenhum objeto de banco nomeado. Prefira essa busca a tentar `grep_search`/`file_search` no repositório backend quando o nome da query não aparece em nenhum arquivo — buscas amplas nesse repositório (`emr-tasy-backend`) frequentemente estouram timeout por ser muito grande.
 
 ---
 
@@ -87,6 +117,28 @@ Isso reduz a investigação de O(n) leituras para O(log₂ n) — por exemplo, 1
 
 ---
 
+## Localizando em quais funções uma tabela é utilizada — `OBJETO_SCHEMATIC` (base Dev)
+
+Para descobrir quais funções/telas do Tasy possuem um WDBPanel gerenciando uma tabela específica (ex: ao investigar impacto de uma alteração de coluna, ou localizar a tela responsável por manter dados de uma tabela), consultar `OBJETO_SCHEMATIC` pelo `NM_TABELA` e traduzir os IDs com as funções utilitárias do próprio Tasy:
+
+```sql
+SELECT substr(cd_funcao || ' - ' || tasy.OBTER_DESC_FUNCAO(cd_funcao), 1, 100),
+       tasy.OBTER_DESC_ESTRUT_SCHEMATIC_2(nr_sequencia)
+FROM (
+  SELECT nr_sequencia, cd_funcao
+  FROM tasy.objeto_schematic
+  WHERE nm_tabela = UPPER('<NOME_DA_TABELA>')
+);
+```
+
+- `tasy.OBTER_DESC_FUNCAO(cd_funcao)` — retorna o nome descritivo da função (ex: "Ordem de Serviço (Nova)")
+- `tasy.OBTER_DESC_ESTRUT_SCHEMATIC_2(nr_sequencia)` — retorna a descrição/caminho do objeto na árvore do schematic (painel, aba, etc.), ajudando a localizar exatamente onde na tela aquele WDBPanel aparece
+- Consultar sempre na base **Dev** (`tasy.` obrigatório) — `objeto_schematic` é tabela do Schematics Legado (ver `schematics-legado.md` para a estrutura completa dessa tabela)
+
+Útil para responder "quais telas usam a tabela X" sem precisar vasculhar manualmente os JSONs do Schematics DX de cada módulo.
+
+---
+
 ## Utilitários PL/SQL do Framework
 
 Funções utilitárias de uso frequente no repositório `tasyfin` e módulos financeiros:
@@ -98,6 +150,14 @@ Funções utilitárias de uso frequente no repositório `tasyfin` e módulos fin
 | `obter_dados_cod_barras(barras, tipo)` | Extrai campos do código de barras: `'B'`=banco, `'V'`=valor, `'DT'`=vencimento, `'C'`=conta, `'A'`=agência |
 | `obter_nome_pf_pj(cd_pf, cd_cgc)` | Retorna nome da pessoa física ou jurídica |
 | `gravar_log_tasy(code, msg, usuario)` | Grava log de erro/auditoria na tabela `log_tasy` |
+
+---
+
+## Padrão: catálogo de BIN hardcoded em function (`OBTER_NUMERO_CARTAO_TEF`)
+
+Quando o cliente fornece um catálogo (planilha) de referência para tradução de um valor (ex: BIN de cartão → bandeira/tipo/banco emissor) e não há uma tabela de cadastro adequada no Tasy para isso, o padrão já estabelecido no framework (usado por `OBTER_NUMERO_CARTAO_TEF`, no contexto de TEF/TPV) é **hardcodar a tradução como uma function com `CASE`/`BETWEEN` por faixa de valor**, não criar uma tabela nova nem reaproveitar cadastros genéricos existentes (ex: tabela `BANCO`, que só tem bancos nacionais e não serve para catálogos de cliente específico). Cada `WHEN` mapeia um valor exato ou faixa (`BETWEEN`) para o resultado, com `ELSE v_result := NULL` no fim.
+
+Ao gerar uma function assim a partir de uma planilha grande (centenas/milhares de linhas), preferir escrever um script (Node/PowerShell) que leia os dados de origem e gere o corpo do `CASE` automaticamente (agrupando por valor de destino em blocos `IN (...)`), em vez de retranscrever manualmente no chat — retranscrição manual de listas grandes é propensa a erros sutis (ex: um valor pertencente a dois grupos por engano, quebrando a ordem de precedência do `CASE`).
 
 ---
 

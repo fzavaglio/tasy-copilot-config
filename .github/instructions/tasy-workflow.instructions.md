@@ -538,6 +538,14 @@ git push origin {tipo}/{NR_CARD}/{versao}
 
 Exemplos de nome de branch: `feature/732567/1848`, `bug/700920/1845`, `bug/700920/1842`.
 
+> **⚠️ Colisão de nome quando já existe uma branch `{tipo}/{NR_CARD}` (ex: para `pre_main`):** o Git não permite coexistir uma ref-folha `bug/755539` e uma ref-namespace `bug/755539/1848` ao mesmo tempo (`755539` não pode ser simultaneamente um nome de branch e um "diretório" de branches) — a criação da segunda falha (silenciosamente em alguns clientes/terminais, sem abortar a cadeia de comandos seguinte). Quando o card já tiver uma branch `{tipo}/{NR_CARD}` aberta para `pre_main`, usar **hífen** em vez de barra para as branches de versão: `bug/755539-1848`, `bug/755539-1845`, etc.
+>
+> **⚠️ Sempre validar a branch atual logo após `checkout -b`, como comando separado:** em uma cadeia de comandos PowerShell (`git checkout X; git pull; git checkout -b Y; git cherry-pick ...`), se um comando intermediário falhar (ex: por causa da colisão de nome acima, ou por estado de prompt corrompido), os comandos seguintes da mesma cadeia podem executar silenciosamente **contra a branch errada** (uma branch de versão compartilhada, ex: `1851` ou `1842`) em vez de abortar. Isso já causou commits diretos acidentais em branches de versão compartilhadas nesta convenção. Antes de qualquer comando git que altere o repositório (`cherry-pick`, `commit`, `push`) após um `checkout -b`, rodar **como comando separado**:
+> ```bash
+> git branch --show-current
+> ```
+> e confirmar que o nome corresponde exatamente à branch esperada. Se algo já foi commitado na branch errada por engano, reverter com `git reset --hard origin/<branch>` antes de prosseguir (nunca fazer push nesse estado).
+
 > **Conflitos ao trocar de branch:** pode ocorrer conflito com arquivos locais modificados (ex: `configuration.yml`, `context.xml` no backend) ao executar o `checkout`. Neste caso, fazer stash somente dos arquivos de configuração local:
 > ```bash
 > git stash push -- TasyAppServer/configuration.yml TasyAppServer/context.xml
@@ -547,6 +555,8 @@ Exemplos de nome de branch: `feature/732567/1848`, `bug/700920/1845`, `bug/70092
 > Se houver outros arquivos locais modificados sem relação com o card atual (arquivos de outro card, dependências temporárias), descartá-los com `git checkout -- <arquivo>` ou `git clean -fd` **antes** do stash — para garantir que o `git stash pop` só restaure `configuration.yml` e `context.xml`.
 
 > **Conflitos no cherry-pick:** se o cherry-pick gerar conflitos em arquivos que estamos alterando (porque a versão de destino possui código diferente), **questionar o usuário antes de prosseguir**.
+>
+> **Princípio de resolução quando a versão de destino tem estrutura divergente:** quando o conflito ocorre porque a branch de versão antiga tem uma estrutura de código mais antiga/diferente da `pre_main` (ex: `pre_main` já passou por um refactor que a versão antiga não recebeu), **preservar a estrutura já existente na versão de destino** e aplicar apenas as linhas estritamente necessárias para o fix atual — não propagar o refactor não relacionado para a versão antiga. Perguntar ao usuário quando não estiver claro se a divergência é relevante ou não para o fix.
 
 > Sempre abrir PR separado para cada versão.
 
