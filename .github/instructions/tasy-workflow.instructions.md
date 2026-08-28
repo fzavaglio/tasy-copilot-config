@@ -460,7 +460,7 @@ Para usar o `gh` numa sessão PowerShell nova, incluir o PATH antes:
 $env:Path += ";C:\Program Files\GitHub CLI"
 ```
 
-**Label `KEEP_OPEN`:** versões que estão em período de verificação (aguardando aprovação para merge) devem receber a label `KEEP_OPEN` além da label de versão. Aplicar nos PRs de frontend e backend dessas versões para sinalizar que não devem ser mergeados ainda. Atualmente a versão em verificação é a 1848.
+**Label `KEEP_OPEN`:** versões que estão em período de verificação (aguardando aprovação para merge) devem receber a label `KEEP_OPEN` além da label de versão. Aplicar nos PRs de frontend e backend dessas versões para sinalizar que não devem ser mergeados ainda. Atualmente a versão em verificação é a 1851.
 
 > **O nome da label é exatamente `KEEP_OPEN`** — maiúsculas e underscore. Variações como `KEEP OPEN`, `keep open`, `keep_open` ou `Keep Open` **não têm efeito nenhum** em manter o PR aberto. Sempre aplicar a label com essa grafia exata, mesmo que o usuário a mencione de outra forma na conversa (ex: "adiciona a keep open"). Se o comando `gh` falhar informando que a label não existe, **não criar** uma label nova nem tentar variações — verificar as labels disponíveis no repositório com `gh label list --repo philips-internal/{repositorio} --search KEEP`.
 
@@ -538,7 +538,7 @@ git push origin {tipo}/{NR_CARD}/{versao}
 
 Exemplos de nome de branch: `feature/732567/1848`, `bug/700920/1845`, `bug/700920/1842`.
 
-> **⚠️ Colisão de nome quando já existe uma branch `{tipo}/{NR_CARD}` (ex: para `pre_main`):** o Git não permite coexistir uma ref-folha `bug/755539` e uma ref-namespace `bug/755539/1848` ao mesmo tempo (`755539` não pode ser simultaneamente um nome de branch e um "diretório" de branches) — a criação da segunda falha (silenciosamente em alguns clientes/terminais, sem abortar a cadeia de comandos seguinte). Quando o card já tiver uma branch `{tipo}/{NR_CARD}` aberta para `pre_main`, usar **hífen** em vez de barra para as branches de versão: `bug/755539-1848`, `bug/755539-1845`, etc.
+> **REGRA CRÍTICA — branches de versão sempre usam barra:** branches de versão devem seguir obrigatoriamente o padrão `{tipo}/{NR_CARD}/{versao}` (ex: `bug/755539/1851`, `bug/755539/1848`). **Nunca substituir a barra por hífen** em branch de versão (ex: não usar `bug/755539-1851` ou `bug/755539-1848`). Se já existir uma branch `{tipo}/{NR_CARD}` que cause colisão de namespace no Git, **parar antes de criar a branch de versão** e solicitar orientação do usuário para remover, renomear ou recriar a branch conflitante. Não prosseguir com alternativa fora do padrão.
 >
 > **⚠️ Sempre validar a branch atual logo após `checkout -b`, como comando separado:** em uma cadeia de comandos PowerShell (`git checkout X; git pull; git checkout -b Y; git cherry-pick ...`), se um comando intermediário falhar (ex: por causa da colisão de nome acima, ou por estado de prompt corrompido), os comandos seguintes da mesma cadeia podem executar silenciosamente **contra a branch errada** (uma branch de versão compartilhada, ex: `1851` ou `1842`) em vez de abortar. Isso já causou commits diretos acidentais em branches de versão compartilhadas nesta convenção. Antes de qualquer comando git que altere o repositório (`cherry-pick`, `commit`, `push`) após um `checkout -b`, rodar **como comando separado**:
 > ```bash

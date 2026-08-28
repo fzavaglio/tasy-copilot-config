@@ -49,6 +49,8 @@ allowFreeformInput: true  ← para o usuário ajustar versões ou adicionar obse
   Após receber a resposta, usar a lista informada e prosseguir com o fluxo git.
 - **"Quero continuar com as alterações antes"** → aguardar, sem abrir nenhum PR
 
+> **Branches de versão:** ao abrir PR para versão, usar obrigatoriamente o padrão `{tipo}/{NR_CARD}/{versao}` (ex: `bug/755539/1851`, `bug/755539/1848`). Nunca substituir a barra por hífen. Se houver colisão com uma branch `{tipo}/{NR_CARD}` já existente, parar e pedir orientação ao usuário antes de prosseguir.
+
 #### Perguntas adicionais obrigatórias antes de abrir
 
 Antes de executar o git, confirmar via `vscode_askQuestions` (segunda chamada sequencial):
@@ -57,7 +59,7 @@ Antes de executar o git, confirmar via `vscode_askQuestions` (segunda chamada se
 header: "Detalhes dos PRs"
 question: "Alguma observação antes de abrir os PRs?"
 options:
-  - label: "Versão 1848 precisa da label KEEP_OPEN"
+  - label: "Versão 1851 precisa da label KEEP_OPEN"
   - label: "Abrir PR também para qa"
   - label: "Nenhuma observação"
 allowFreeformInput: false
