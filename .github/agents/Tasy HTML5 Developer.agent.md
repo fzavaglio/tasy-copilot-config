@@ -116,7 +116,7 @@ Quando o usuário solicitar a **triagem** ou análise inicial de um card, reunir
 ### 2. Não confiar 100% na documentação do card
 - Tratar as afirmações do card (inclusive a análise do suporte N1/N2) como **hipóteses a validar**, não como fatos. Expressões como "Acredito que...", "deveria...", e os campos `IsDefect = False` / "Suspected Design Defect" indicam que ainda não há defeito confirmado.
 - **Exceção:** discussions postadas por um **especialista de negócio** podem ser tratadas como confiáveis. Em dúvida sobre quem postou, consultar o usuário.
-- Validar a hipótese com **evidência real**: consulta ao banco (MCP Oracle), leitura de código (frontend/backend/PL-SQL) e, quando possível, **reprodução no sistema** (ver skill `tasy-playwright` / `browser-tools.md`).
+- Validar a hipótese com **evidência real**: consulta ao banco (MCP Oracle, **registros de teste sempre na base Financial** `mcp_oracle2_*`), leitura de código (frontend/backend/PL-SQL) e, quando possível, **reprodução no sistema** (ver skill `tasy-playwright` / `browser-tools.md`).
 
 ### 3. Classificar: Bug × Dúvida do cliente
 - **Bug:** há divergência comprovada entre o comportamento observado e o esperado, sustentada por evidência (dado, código ou reprodução).
@@ -196,7 +196,7 @@ O conhecimento técnico detalhado do framework Tasy HTML5 fica em arquivos de re
 | Backend Java: estrutura de pacotes, classe Servidor, Enums, classes Action, `UServPac`, `DataSourceActionParameter`, `WCPanelAction` | Ao editar código Java do backend | `backend-java.md` |
 | Parametrização por função: hierarquia de resolução (usuário→perfil→estabelecimento→padrão), uso em frontend/backend/PL-SQL, regras críticas genéricas, verificação de `IE_SITUACAO_HTML5` | Ao encontrar `isParameter`/`getParameter`/`obterParametroUsuario`/`OBTER_PARAMETRO_FUNCAO` em qualquer repositório | `parametrizacao.md` |
 | Workflow de investigação/correção de bug PL/SQL, uso e limitações do MCP Oracle, utilitários genéricos (`somente_numero`, `obter_cnpj_raiz`...) | Ao investigar ou corrigir um bug em PL/SQL | `plsql-workflow.md` |
-| Regra de schema Dev (`tasy.` + `mcp_oracle_*`) × Financial (sem prefixo + `mcp_oracle2_*`) e consultas de rastreamento via `log_data` (JSON_TABLE) | Ao rodar qualquer consulta/script PL/SQL avulso ou documentar releases (Comment 4 do ADO) | `oracle-queries-log-data.md` |
+| Regra de base Financial (obrigatória para desenvolvimento/teste, `mcp_oracle2_*`) × Dev (cadastros, definições e históricos, `tasy.` + `mcp_oracle_*`) e consultas de rastreamento via `log_data` (JSON_TABLE) | **Antes de qualquer consulta Oracle**, documentação de releases (Comment 4 do ADO) | `oracle-queries-log-data.md` |
 | Comparação de comportamento com Java Swing / Delphi (caminhos dos projetos legados, como consultar cada um) | Ao precisar alinhar a implementação HTML5 com o comportamento legado | `platform-comparison.md` |
 | Navegador integrado do VS Code × MCP Playwright, skills de módulo a carregar antes de navegar, identificação de elementos por `ref=eXXXX` | Ao testar, navegar ou reproduzir cenários no sistema Tasy | `browser-tools.md` (+ skill `tasy-playwright` para protocolo de login/URL) |
 
@@ -282,6 +282,20 @@ Este agente atua nos projetos de **frontend** (JavaScript/HTML5), **backend** (J
 ## Uso de Ferramentas e MCPs
 
 O agente deve acionar **apenas** as ferramentas/MCPs diretamente relevantes para a tarefa em andamento. Antes de carregar uma ferramenta deferred via `tool_search`, confirmar que ela pertence a um dos grupos mapeados: **ADO, GitHub, Oracle, Playwright/browser e SonarQube**.
+
+### Oracle — base Financial SEMPRE (regra obrigatória)
+
+> **⛔ Qualquer uso de base para desenvolvimento, teste ou consulta de registros de teste é SEMPRE na base Financial (`mcp_oracle2_*`, sem prefixo `tasy.`)**: reprodução de cenário, validação de hipótese com dados, registros de negócio (títulos, lotes, OS...), valor efetivo de parâmetros por usuário/perfil/estabelecimento, compilação e execução de objetos PL/SQL, montagem de dados de teste e `log_data`. Os registros de negócio da base Dev **não** representam o ambiente de testes do usuário — conclusões tiradas deles são inválidas.
+
+**A base Dev (`mcp_oracle_*`, prefixo `tasy.` obrigatório) pode ser usada para consultar cadastros, definições e históricos:**
+- Releases (`AJUSTE_VERSAO`)
+- Histórico de alterações de código (`OBJETO_SISTEMA_HIST`)
+- Cadastro de parâmetros de função (`FUNCAO_PARAMETRO` a nível de definição, `IE_SITUACAO_HTML5`, `FUNCTION_RELEASE_NOTE`) — nunca o valor efetivo por usuário/perfil/estabelecimento
+- Cadastros de dicionário / Schematics Legado (`OBJETO_SCHEMATIC`, `DIC_OBJETO`, `TASY_LEGENDA`, cadastro de funções, tabelas, etc.)
+
+Antes de qualquer chamada `mcp_oracle_*`, confirmar que a consulta é de cadastro/definição/histórico; se envolver registros de teste, compilação ou execução, usar `mcp_oracle2_*`. Ter usado Dev em sessão anterior não é justificativa. Se uma consulta de desenvolvimento/teste em Financial falhar ou não retornar dados, **não migrar para Dev por conta própria** — informar o usuário e perguntar. Regras de schema e consultas detalhadas em `oracle-queries-log-data.md`.
+
+> A skill genérica `oracle` cita as ferramentas como `mcp_oracle_*` apenas como exemplo de nomenclatura. Neste agente, para desenvolvimento/teste, substituir sempre pelas equivalentes `mcp_oracle2_*` (Financial).
 
 ### SonarQube — análise local de qualidade (pré-PR)
 

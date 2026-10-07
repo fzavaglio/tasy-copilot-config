@@ -2,27 +2,40 @@
 
 > Referência do agente **Tasy HTML5 Developer**. Carregar sempre que for executar consultas/scripts PL/SQL avulsos, documentar releases (Comment 4 do ADO) ou investigar alterações de dicionário.
 
-## Regra de preferência — Financial por padrão
+## Regra de preferência — Financial SEMPRE para desenvolvimento/teste
 
-> **SEMPRE usar a base Financial (`mcp_oracle2_*`) para desenvolvimento**: investigação de bug, consulta de dados de teste, verificação de valores efetivos de parâmetro de função, exploração de schema/tabelas de negócio, testes de query avulsa, etc. Não escolher Dev "por hábito" ou porque outra sessão usou Dev antes — o padrão é sempre Financial a menos que o caso se enquadre exatamente em uma das exceções abaixo.
+> **⛔ Qualquer uso de base para desenvolvimento, teste ou consulta de registros de teste é SEMPRE na base Financial (`mcp_oracle2_*`).** Os registros de negócio da base Dev **não são dados de teste** do ambiente usado pelo usuário — conclusões tiradas deles (títulos, lotes, OS, parametrização por usuário/perfil/estabelecimento, objetos compilados) são inválidas para o cenário em análise.
 
-**A base Dev (`mcp_oracle_*`) é restrita aos usos abaixo, já documentados explicitamente em outros arquivos deste agente:**
+**Base Financial (`mcp_oracle2_*`) — obrigatória para desenvolvimento/teste:**
+- Reprodução de cenário e validação de hipótese de bug com dados
+- Consulta de registros/dados de teste (títulos, lotes contábeis, OS, pessoas, atendimentos, etc.)
+- Valor efetivo de parâmetro (`FUNCAO_PARAM_USUARIO`/`_PERFIL`/`_ESTAB`) e ajuste de parâmetro para teste
+- Compilação (`execute_plsql_ddl`), testes de procedure/function (`execute_plsql_call`) e queries de teste avulsas
+- Inserção/alteração de dados para montar cenário de teste
+- `log_data` (alterações de dicionário) — a tabela em Dev está vazia
 
-| Uso permitido em Dev | Motivo | Referência |
-|---|---|---|
-| `AJUSTE_VERSAO` — releases de versão (Comment 4 do ADO) | Não existe equivalente/dado de release em Financial | `tasy-workflow.instructions.md` |
-| `OBJETO_SISTEMA_HIST` — histórico de revisão de objetos PL/SQL (rastrear quando um bug foi introduzido) | Fonte confiável de revisões de objetos PL/SQL; `git log`/GitHub não deve ser usado para isso | `plsql-workflow.md`, `tasy-workflow.instructions.md` |
-| `IE_SITUACAO_HTML5` / `function_release_note` — verificar se um parâmetro está ativo no HTML5 e ler release notes de depreciação de parâmetro | Documentação de depreciação é mantida em Dev | `parametrizacao.md` |
-| `log_data` (alterações de dicionário) | **Exceção invertida** — usar sempre **Financial**, a tabela em Dev está vazia | ver seção abaixo |
+**Base Dev (`mcp_oracle_*`) — permitida para consulta de cadastros, definições e históricos (não é dado de teste):**
 
-Qualquer outra consulta (valores atuais de `FUNCAO_PARAMETRO`, dados de paciente/atendimento/título, exploração de schema, testes de procedure, etc.) deve ser feita em **Financial**, mesmo que a tarefa também envolva alguma das exceções acima — usar Dev só para a parte específica documentada, o restante da investigação continua em Financial.
+| Uso permitido em Dev | Exemplos |
+|---|---|
+| Releases | `AJUSTE_VERSAO` (Comment 4 do ADO) |
+| Histórico de alterações de código | `OBJETO_SISTEMA_HIST` (quando/como um objeto PL/SQL foi alterado) |
+| Cadastro de parâmetros de função | `FUNCAO_PARAMETRO` a nível de definição (`DS_PARAMETRO`, `CD_DOMINIO`, `VL_PARAMETRO_PADRAO`, `IE_SITUACAO_HTML5`), `FUNCTION_RELEASE_NOTE` |
+| Cadastros de dicionário / Schematics Legado | `OBJETO_SCHEMATIC`, `OBJ_SCHEMATIC_EVENTO`, `DIC_OBJETO`, `TASY_LEGENDA`, `REGRA_CONDICAO`, cadastro de funções, tabelas, visões, etc. |
+
+**Checklist obrigatório antes de qualquer chamada `mcp_oracle_*` (Dev):**
+1. A consulta é de **cadastro, definição ou histórico** (tabela acima)? Se não → usar `mcp_oracle2_*` (Financial).
+2. A consulta envolve **registros de negócio/teste** (títulos, lotes, OS, parametrização efetiva por usuário etc.), compilação ou execução de objeto? Se sim → **Financial**, sem exceção.
+3. Uma sessão anterior/outro arquivo usou Dev para a mesma tabela? Isso **não** é justificativa — reavaliar pelos itens acima.
+
+Se uma consulta de desenvolvimento/teste em Financial falhar (tabela vazia, objeto ausente, erro de permissão), **não migrar silenciosamente para Dev**: informar o usuário e perguntar como proceder.
 
 ## Schema nas queries — regra obrigatória
 
 | Como o usuário chama | Tool prefix | Usuário da sessão | Prefixo nas queries |
 |---|---|---|---|
 | "base financial" / Financial (padrão) | `mcp_oracle2_*` | `Tasy` | sem prefixo |
-| "base dev" / Dev (só para as exceções acima) | `mcp_oracle_*` | `wheb_readonly` | `tasy.` obrigatório |
+| "base dev" / Dev (somente cadastros, definições e históricos — ver tabela acima) | `mcp_oracle_*` | `wheb_readonly` | `tasy.` obrigatório |
 
 - A base **Financial** (`mcp_oracle2_*`) conecta com o usuário `Tasy`, portanto tabelas e objetos podem ser referenciados **sem prefixo de schema**.
 - A base **Dev** (`mcp_oracle_*`) conecta com o usuário `wheb_readonly`, cujo schema padrão de sessão **não é `TASY`**. Toda referência a tabela, view ou objeto PL/SQL na base Dev **deve ser prefixada com `tasy.`** (ex: `tasy.man_ordem_servico`, `tasy.titulo_pagar`). Nunca omitir o prefixo em queries na base Dev.

@@ -623,7 +623,7 @@ await page.evaluate((code) => {
 | **JS** | `onBeforePerform`, `onAfterPerform`, `action()` no `.js` da função |
 | **Backend Java** | `*Servidor.java` → `*Action.java` |
 | **PL/SQL** | enum `*ProcEnum` → arquivo `.prc` no repositório |
-| **Banco** | `mcp_oracle2_execute_select_query` (Financial) ou `mcp_oracle_execute_select_query` (Dev) |
+| **Banco** | `mcp_oracle2_execute_select_query` (Financial) — nunca usar a base Dev (`mcp_oracle_*`) para rastreio/teste |
 
 ### 4. Capturar erros de console
 

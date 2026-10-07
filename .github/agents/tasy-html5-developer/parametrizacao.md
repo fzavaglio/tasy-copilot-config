@@ -170,7 +170,7 @@ Sempre que encontrar **qualquer chamada de parâmetro de função** em qualquer 
 
 ### Passo 1 — Confirmar que o parâmetro está habilitado para HTML5
 
-Consultar na base **Dev** — exceção documentada à regra geral de preferir Financial, ver "Regra de preferência" em `oracle-queries-log-data.md` (`mcp_oracle_*`):
+Consultar na base **Dev** (`mcp_oracle_*`) — consulta de cadastro do parâmetro (definição, domínio, valor padrão, `IE_SITUACAO_HTML5`), permitida em Dev. Ver "Regra de preferência" em `oracle-queries-log-data.md`:
 
 ```sql
 SELECT nr_sequencia, ds_parametro, ie_situacao_html5, cd_funcao

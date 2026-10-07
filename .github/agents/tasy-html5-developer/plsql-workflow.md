@@ -23,6 +23,8 @@ Ao receber um card de bug que envolva PL/SQL, seguir este fluxo em ordem:
 
 O MCP Oracle permite compilar e testar PL/SQL diretamente no banco sem precisar da aplicação.
 
+> **Base obrigatória: Financial (`mcp_oracle2_*`, sem prefixo `tasy.`).** Compilação, testes e consultas de registros de teste **nunca** são feitos na base Dev (`mcp_oracle_*`). A Dev fica restrita a consultas de cadastros, definições e históricos — ver regra completa em `oracle-queries-log-data.md`.
+
 **Quando usar:**
 - Compilar procedures/functions alteradas (`execute_plsql_ddl`)
 - Validar lógica de SELECTs e comportamento de funções (`execute_select_query`)
@@ -133,7 +135,7 @@ FROM (
 
 - `tasy.OBTER_DESC_FUNCAO(cd_funcao)` — retorna o nome descritivo da função (ex: "Ordem de Serviço (Nova)")
 - `tasy.OBTER_DESC_ESTRUT_SCHEMATIC_2(nr_sequencia)` — retorna a descrição/caminho do objeto na árvore do schematic (painel, aba, etc.), ajudando a localizar exatamente onde na tela aquele WDBPanel aparece
-- Consultar sempre na base **Dev** (`tasy.` obrigatório) — `objeto_schematic` é tabela do Schematics Legado (ver `schematics-legado.md` para a estrutura completa dessa tabela)
+- Consultar na base **Dev** (`tasy.` obrigatório) — é consulta de cadastro do Schematics Legado, não de registros de teste (ver `schematics-legado.md` para a estrutura completa dessa tabela)
 
 Útil para responder "quais telas usam a tabela X" sem precisar vasculhar manualmente os JSONs do Schematics DX de cada módulo.
 
