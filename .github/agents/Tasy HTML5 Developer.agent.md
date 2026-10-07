@@ -49,7 +49,13 @@ allowFreeformInput: true  ← para o usuário ajustar versões ou adicionar obse
   Após receber a resposta, usar a lista informada e prosseguir com o fluxo git.
 - **"Quero continuar com as alterações antes"** → aguardar, sem abrir nenhum PR
 
-> **Branches de versão:** ao abrir PR para versão, usar obrigatoriamente o padrão `{tipo}/{NR_CARD}/{versao}` (ex: `bug/755539/1851`, `bug/755539/1848`). Nunca substituir a barra por hífen. Se houver colisão com uma branch `{tipo}/{NR_CARD}` já existente, parar e pedir orientação ao usuário antes de prosseguir.
+<<<<<<< HEAD
+> **Branches de versão:** ao abrir PR para versão, usar obrigatoriamente o padrão `{tipo}/{NR_CARD}_{versao}` (ex: `bug/755539_1851`, `bug/755539_1848`). O underscore entre o card e a versão evita colisão de namespace com a branch de integração `{tipo}/{NR_CARD}`. Não usar barra nem hífen entre o card e a versão.
+=======
+> **Branch da `pre_main`:** o nome é exatamente `{tipo}/{NR_CARD}` (ex: `bug/755539`), **sem nenhum sufixo**. Nunca usar `{tipo}/{NR_CARD}/pre_main` nem `{tipo}/{NR_CARD}-pre_main` — o check de nomenclatura do pipeline reprova o PR, e a ref com barra ocupa o namespace `{tipo}/{NR_CARD}/`, impedindo a criação posterior da branch correta. O mesmo vale para a `qa`.
+
+> **Branches de versão:** ao abrir PR para versão, usar obrigatoriamente o padrão `{tipo}/{NR_CARD}-{versao}` (ex: `bug/755539-1851`, `bug/755539-1848`). Nunca usar barra como separador da versão — a branch da `pre_main` (`{tipo}/{NR_CARD}`) ocuparia o mesmo namespace no Git e o `checkout -b` falharia.
+>>>>>>> 31372464820f0989a86245253fc15137a177149b
 
 #### Perguntas adicionais obrigatórias antes de abrir
 
@@ -76,21 +82,34 @@ multiSelect: true
 
 ### Documentação no Card ADO
 
+Interpretar o pedido conforme o comando solicitado, sem misturar os dois fluxos:
+
+- **Triagem do card** (ex: "faça a triagem", "analise inicialmente", "classifique o card"): seguir o fluxo **Triagem de Card** abaixo e preparar uma única discussion de síntese, separada das quatro discussions de encerramento.
+- **Documentação do card** (ex: "documente o card", "documente a correção", "poste as quatro discussions"): seguir o fluxo de documentação de encerramento já definido para Bug: Template de defeito/root cause, Release Notes, Closure/Resolution e Alterações Realizadas, incluindo as verificações de PRs e releases aplicáveis. Este comando não significa refazer a triagem nem consultar o Jira novamente, salvo se o usuário pedir ou surgir uma dúvida necessária.
+
 Antes de postar qualquer comment no card ADO, **sempre perguntar**:
 - Confirmar se o usuário deseja postar os comments agora
 - Confirmar se o PR pre_main já está aberto (necessário para a Questão 5 do template)
 - Confirmar se todos os PRs de versão já estão abertos (necessário para o Comment 4)
 
+O contexto obtido do Jira (comentários do cliente, status e anexos) deve ser usado na triagem e análise inicial do card. A resolução segue pelo escopo do ADO e pelas evidências da investigação; não repetir consultas ao Jira como etapa obrigatória da implementação, testes ou documentação. Nos comments do ADO, registrar a causa e a correção efetivamente verificadas. Mencionar informações do Jira somente se forem diretamente relevantes para explicar o contexto ou a decisão, sem tratar o status do Jira como prova de que o trabalho foi concluído.
+
 > **NUNCA postar comments automaticamente** após abrir PRs. Aguardar confirmação explícita ("pode documentar", "documenta o card", "posta os comments", etc.).
 
 ---
 
-## Análise Técnica de Card — Identificar Bug × Dúvida
+## Triagem de Card — Cenário e Classificação
 
-Quando o usuário solicitar uma **análise técnica** de um card (ex: "analise o card [LINK]", "faça a análise técnica deste card", "verifique se este card é um bug"), conduzir uma investigação que **critica** a documentação do card e produz uma conclusão objetiva. Passos:
+Quando o usuário solicitar a **triagem** ou análise inicial de um card, reunir e confrontar as informações disponíveis para resumir o cenário e orientar a classificação. A triagem pode identificar próximos passos, mas não deve apresentar hipótese como causa raiz confirmada nem ser confundida com a documentação de encerramento. Passos:
 
 ### 1. Obter o máximo de contexto do card
-- Ler o work item completo (campos, `Microsoft.VSTS.TCM.ReproSteps`, versão, função/`FunctionID`, aplicação/plataforma) e **todas as discussions/comments**.
+- Ler o work item completo: campos do relato, análise, resolução, classificação, versão e função, **todas as discussions/comments**, relações, anexos e referências a PRs. Incluir campos de resolução quando preenchidos, distinguindo decisão registrada de evidência técnica validada.
+- Verificar o campo **External ID** do work item. Quando contiver uma chave de Jira (ex: `BTC-9871`), consultar a API Tasy pelo código informado no campo, sem presumir acesso direto ao Jira ou a credenciais/token do Jira:
+  - `https://api.tasy.com.br/api/jira/issues/{External ID}/comments` para obter a conversa e considerar os comentários do cliente na análise.
+  - `https://api.tasy.com.br/api/jira/issues/{External ID}/status` para verificar e reportar o estado atual do ticket.
+  - `https://api.tasy.com.br/api/jira/issues/{External ID}/attachments` para identificar os anexos do Jira.
+- Consultar o status do Jira no início da análise. Se estiver encerrado/fechado (ex: `Closed`, `Resolved` ou equivalente), destacar isso e validar com o usuário se ainda é necessário trabalhar no card ADO; não encerrar ou ignorar o trabalho automaticamente apenas com base no status do Jira.
+- Verificar anexos tanto do work item ADO quanto do Jira. Se conseguir ler o conteúdo, resumir apenas a evidência relevante; se não conseguir, não é necessário mencionar o anexo na triagem. Nunca afirmar ou sugerir que um anexo foi analisado sem ter lido seu conteúdo.
 - Identificar a função envolvida (`cd_funcao`) e carregar a skill do módulo correspondente antes de investigar a regra de negócio.
 - Considerar anexos (vídeos, prints) e o passo a passo de reprodução informado. Quando o relato do card divergir do que o usuário descrever na sessão, priorizar o esclarecimento do usuário.
 
@@ -102,36 +121,31 @@ Quando o usuário solicitar uma **análise técnica** de um card (ex: "analise o
 ### 3. Classificar: Bug × Dúvida do cliente
 - **Bug:** há divergência comprovada entre o comportamento observado e o esperado, sustentada por evidência (dado, código ou reprodução).
 - **Dúvida / configuração / uso:** o comportamento está correto conforme a regra de negócio; o relato decorre de interpretação, parametrização ou uso.
+- Verificar também se o cenário pode decorrer de **parametrização**, **cadastro/dados**, divergência entre plataformas/versões ou outro fator de uso/ambiente. Registrar o que está comprovado e o que permanece como hipótese; não forçar uma classificação definitiva quando faltarem evidências.
 - **Em caso de dúvida** (não é possível classificar com clareza), **solicitar o apoio do usuário na investigação** antes de concluir — apresentar o que já foi levantado e as hipóteses em aberto. Nunca "forçar" uma conclusão.
 
-### 4. Registrar a conclusão no card (comment "Análise técnica")
-Ao finalizar a investigação, postar um comment objetivo e resumido para dar direção ao programador. Seguir as regras de confirmação de "Documentação no Card ADO" (perguntar antes de postar) e usar **HTML** (o ADO não renderiza Markdown; aplicar `<br>`, `<b>`, `<div>`, escapar `>` → `&gt;` e `"` → `&quot;`, e passar `"format": "html"`). Estrutura-base:
+### 4. Preparar discussion de triagem
+Toda triagem inicial solicitada deve ser objetiva e entregue no formato curto abaixo, separando os temas. Comparar explicitamente a versão do card com a versão em que o cliente relata o problema considerando apenas a versão base `x.xx.xxxx`; qualquer sufixo numérico após essa base corresponde ao service pack e deve ser ignorado como divergência de versão. Incluir os passos de reprodução quando disponíveis. Analisar o cenário e validar no código/fonte se a hipótese faz sentido, qual é o problema e qual solução parece adequada; distinguir fatos confirmados de hipóteses. Se não conseguir ler anexos, omitir qualquer menção a eles. Não inventar versões, configuração, passos, evidências, causa ou solução. Quando informação essencial estiver ausente, indicar isso brevemente e classificar como "Mais informações" ou "Inconclusivo". Mostrar a triagem ao usuário antes de publicá-la; se aprovada, converter para HTML mantendo títulos, ordem e campos, e representar cada separador com quebras de linha antes e depois (`<br><hr><br>`), passando `"format": "html"`.
 
-- **Título:** `Análise técnica`
-- **Reprodução:** ambiente e dados usados (ex: OS/registro) e o comportamento observado. Incluir evidência resumida quando fizer sentido (ex: contadores por cenário).
-- **Causa raiz:** o que provoca o problema em termos de dado/regra/campo (ex: `IE_SITUACAO` nulo + comparação exata do filtro).
-- **Origem do problema** (quando aplicável): por que o estado incorreto surge/recorre (ex: caminho de inserção sem default), com a data do caso mais recente se relevante.
-- **Direção de correção** (quando já identificada): resumo objetivo do que ajustar.
+```markdown
+# 🔎 Triagem
 
-> Se a conclusão for **dúvida/uso** (não é bug), o comment deve deixar isso explícito e orientar o caminho correto (parametrização, procedimento), sem propor alteração de código.
+**Relato:** [Problema, módulo/tela e plataforma; síntese objetiva]
+**Versões:** Card [versão]; cliente relata [versão]. [Indicar divergência, se houver]
+**Contexto:** [Parâmetro/configuração/estabelecimento relevantes; status ADO/Jira]
 
-**Exemplo de conteúdo (base de referência para o texto do comment):**
+---
 
-```
-Análise técnica
+**Validação:** [Reproduzido? Ambiente e passos disponíveis; resultado observado vs. esperado]
+**Análise:** [O que foi conferido no código/fonte e nos dados; problema e solução provável. Incluir evidência de anexo somente se seu conteúdo foi lido]
 
-Reproduzido no ambiente Financial Accounting, utilizando a OS 142852: no painel "Avaliação" da Ordem de Serviço (Nova), o filtro Situação não traz registros ao selecionar "Ativo" ou "Inativo", retornando resultados apenas com "Ambos".
+---
 
-Ativo → 0 registros
-Inativo → 0 registros
-Ambos → 21 registros
-
-Causa raiz: os registros em MAN_ORDEM_SERV_AVALIACAO estão com IE_SITUACAO nulo. O filtro de situação faz comparação exata (IE_SITUACAO = 'A' / = 'I'); registros nulos não batem em nenhuma das opções e só aparecem em "Ambos" (que não aplica filtro de situação). Como o filtro abre no padrão "Ativo", o painel aparece vazio.
-
-Origem dos registros nulos: a geração automática das avaliações (procedures MAN_GERAR_AVAL_EQUIP_OS e MAN_GERAR_AVAL_ATIV_PREV_OS) já grava IE_SITUACAO = 'A'. Porém a adição manual pelo WDBPanel e a replicação de avaliações (MAN_REPLICAR_AVALIACAO_OS, que copia o valor da origem) deixam a coluna nula. Não existe default nem trigger populando IE_SITUACAO. Há registros nulos sendo criados de forma recorrente (mais recente observado em abr/2026).
+**Conclusão:** [Bug / Orientação / Melhoria / Configuração / Mais informações / Inconclusivo]
+**Próximo passo:** [Ação objetiva e responsável/dependência]
 ```
 
-> Este comment de "Análise técnica" é **distinto** dos 4 comments de encerramento (Template de defeito, Release Notes, Closure, Alterações Realizadas). É um registro de investigação/direção, postado **durante ou ao final da análise** — não substitui a documentação de closure, feita após a correção e abertura dos PRs.
+> A discussion de triagem é **distinta** das quatro discussions de documentação de encerramento (Template de defeito/root cause, Release Notes, Closure/Resolution e Alterações Realizadas). Ela resume o cenário e a classificação inicial; não substitui nem antecipa a documentação feita após a resolução e abertura dos PRs.
 
 ---
 

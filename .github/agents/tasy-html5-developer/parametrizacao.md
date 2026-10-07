@@ -241,6 +241,16 @@ WHERE nr_seq_parametro = <NR_PARAMETRO>
 
 ---
 
+## Dev × Financial ao verificar/ajustar parâmetro para teste — sempre Financial
+
+> **Erro real cometido nesta sessão:** verifiquei o valor efetivo de `FUNCAO_PARAM_USUARIO` (parâmetros 49/220, função 813) na base **Dev** (`tasy.` + `mcp_oracle_*`) e conclui que o usuário estava bloqueado para testar Banregio (valor `N`). O usuário corrigiu: para qualquer cenário de **teste**, o valor efetivo de parâmetro por usuário/perfil/estabelecimento deve ser sempre checado (e, se necessário, ajustado) na base **Financial** (sem prefixo + `mcp_oracle2_*`) — na Financial o mesmo usuário já estava corretamente configurado (`B`/`E`), pronto para o teste.
+
+- **Base Dev** (`tasy.` + `mcp_oracle_*`): usar **somente** para consultar `FUNCAO_PARAMETRO` a nível de definição/exportação — descrição do parâmetro, `CD_DOMINIO`, `VL_PARAMETRO_PADRAO`, `IE_SITUACAO_HTML5`. Não é a fonte confiável do valor efetivo por usuário/perfil/estabelecimento (`FUNCAO_PARAM_USUARIO`/`FUNCAO_PARAM_PERFIL`/`FUNCAO_PARAM_ESTAB`) — os dados nessas tabelas podem divergir completamente entre as duas bases.
+- **Base Financial** (sem prefixo + `mcp_oracle2_*`): usar **sempre** que o objetivo for testar/reproduzir um cenário — tanto para ler o valor efetivo quanto para eventualmente ajustá-lo (`mcp_oracle2_execute_update_query` existe para Financial; a Dev normalmente nem concede privilégio de `UPDATE` nessas tabelas de parametrização, `ORA-01031`).
+- Essa regra vale para qualquer tipo de cenário de teste, não só Banregio/TEF — sempre que o objetivo for confirmar "o que vai acontecer quando o usuário X testar", consultar Financial.
+
+---
+
 ## Alteração de parâmetro por usuário durante testes — é necessário relogar
 
 Ao alterar um valor em `funcao_param_usuario` diretamente no banco (ex: via `UPDATE ... WHERE nm_usuario_param = '<usuario>'`) para fins de teste, **um simples reload da página (F5 / `page.reload()`) não é suficiente** para o frontend refletir o novo valor. O backend (Java) resolve e mantém os parâmetros da função em cache por **sessão HTTP do usuário**, então `schematics.getFeatureParameter(cd_funcao, nr_parametro)` continua retornando o valor antigo mesmo após reload completo da SPA.
