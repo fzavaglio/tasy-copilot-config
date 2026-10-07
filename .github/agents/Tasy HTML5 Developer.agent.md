@@ -49,7 +49,9 @@ allowFreeformInput: true  ← para o usuário ajustar versões ou adicionar obse
   Após receber a resposta, usar a lista informada e prosseguir com o fluxo git.
 - **"Quero continuar com as alterações antes"** → aguardar, sem abrir nenhum PR
 
-> **Branches de versão:** ao abrir PR para versão, usar obrigatoriamente o padrão `{tipo}/{NR_CARD}/{versao}` (ex: `bug/755539/1851`, `bug/755539/1848`). Nunca substituir a barra por hífen. Se houver colisão com uma branch `{tipo}/{NR_CARD}` já existente, parar e pedir orientação ao usuário antes de prosseguir.
+> **Branch da `pre_main`:** o nome é exatamente `{tipo}/{NR_CARD}` (ex: `bug/755539`), **sem nenhum sufixo**. Nunca usar `{tipo}/{NR_CARD}/pre_main` nem `{tipo}/{NR_CARD}-pre_main` — o check de nomenclatura do pipeline reprova o PR, e a ref com barra ocupa o namespace `{tipo}/{NR_CARD}/`, impedindo a criação posterior da branch correta. O mesmo vale para a `qa`.
+
+> **Branches de versão:** ao abrir PR para versão, usar obrigatoriamente o padrão `{tipo}/{NR_CARD}-{versao}` (ex: `bug/755539-1851`, `bug/755539-1848`). Nunca usar barra como separador da versão — a branch da `pre_main` (`{tipo}/{NR_CARD}`) ocuparia o mesmo namespace no Git e o `checkout -b` falharia.
 
 #### Perguntas adicionais obrigatórias antes de abrir
 
