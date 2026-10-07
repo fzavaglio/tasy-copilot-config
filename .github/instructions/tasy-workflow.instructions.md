@@ -385,11 +385,7 @@ A branch deve conter as alterações realizadas.
 git checkout -b {tipo}/{NR_CARD}
 
 # PR para uma versão
-<<<<<<< HEAD
-git checkout -b {tipo}/{NR_CARD}_{versao}
-=======
 git checkout -b {tipo}/{NR_CARD}-{versao}
->>>>>>> 31372464820f0989a86245253fc15137a177149b
 ```
 
 - `{tipo}` é definido pelo tipo do work item no ADO: **`feature`** para Feature/User Story, **`bug`** para Bug.
@@ -397,9 +393,6 @@ git checkout -b {tipo}/{NR_CARD}-{versao}
 - A branch de `pre_main` (e de `qa`) **não recebe sufixo nenhum** — nem de versão, nem o nome da branch de destino. O nome é exatamente `{tipo}/{NR_CARD}`.
 - O separador entre o número do card e a versão é **hífen** (`-`), nunca barra. Usar barra criaria colisão de namespace no Git com a branch `{tipo}/{NR_CARD}` da `pre_main` (o Git não permite que um mesmo ref seja arquivo e diretório ao mesmo tempo).
 - **Nunca usar ponto** no nome da branch.
-<<<<<<< HEAD
-- Exemplos: `feature/732567`, `feature/732567_1848`, `bug/700920`, `bug/700920_1845`
-=======
 - Exemplos: `feature/732567`, `feature/732567-1848`, `bug/700920`, `bug/700920-1845`
 
 > **REGRA CRÍTICA — a branch da `pre_main` nunca leva `/pre_main` no final:** usar `{tipo}/{NR_CARD}` e **nunca** `{tipo}/{NR_CARD}/pre_main` (nem `-pre_main`, nem `/qa`). O check de nomenclatura de branch do pipeline **reprova** o PR nesse formato, e a ref `{tipo}/{NR_CARD}/pre_main` ainda ocupa o namespace `{tipo}/{NR_CARD}/`, impedindo a criação posterior da branch correta.
@@ -407,7 +400,6 @@ git checkout -b {tipo}/{NR_CARD}-{versao}
 > **Recuperação quando o erro já ocorreu:** fechar o PR reprovado, apagar no origin **todas** as refs sob `{tipo}/{NR_CARD}/` (`git push origin --delete ...`) e as locais (`git branch -D ...`), recriar `{tipo}/{NR_CARD}` a partir da `pre_main` atualizada e refazer os commits via `git cherry-pick` (sem reaplicar eventuais commits de merge do PR antigo). Confirmar com o usuário antes de apagar refs remotas, e conferir em `gh pr list --search "<NR_CARD>" --state all` que os PRs dessas branches já estão mergeados/fechados.
 >
 > O `git push origin --delete a b c` é **atômico**: se qualquer ref da lista não existir mais no origin (comum após auto-delete de branch mergeada), **nenhuma** é apagada. Validar antes com `git ls-remote origin | Select-String "<NR_CARD>"` — refs de remote-tracking locais podem estar desatualizadas mesmo após `git fetch --prune`.
->>>>>>> 31372464820f0989a86245253fc15137a177149b
 
 #### Passo 3 — Adicionar apenas os arquivos alterados
 
@@ -546,16 +538,6 @@ Para cada versão, repetir o fluxo abaixo. O hash do commit deve ser o gerado no
 ```bash
 git checkout 5.06.1848
 git pull origin 5.06.1848
-<<<<<<< HEAD
-git checkout -b {tipo}/{NR_CARD}_{versao}
-git cherry-pick {HASH_COMMIT}
-git push origin {tipo}/{NR_CARD}_{versao}
-```
-
-Exemplos de nome de branch: `feature/732567_1848`, `bug/700920_1845`, `bug/700920_1842`.
-
-> **REGRA CRÍTICA — branches de versão usam underscore:** branches de versão devem seguir obrigatoriamente o padrão `{tipo}/{NR_CARD}_{versao}` (ex: `bug/755539_1851`, `bug/755539_1848`). O underscore entre o card e a versão evita colisão de namespace com a branch de integração `{tipo}/{NR_CARD}`. **Não usar barra nem hífen** entre o card e a versão (ex: não usar `bug/755539/1851`, `bug/755539-1851` ou `bug/755539-1848`).
-=======
 git checkout -b {tipo}/{NR_CARD}-{versao}
 git cherry-pick {HASH_COMMIT}
 git push origin {tipo}/{NR_CARD}-{versao}
@@ -564,7 +546,6 @@ git push origin {tipo}/{NR_CARD}-{versao}
 Exemplos de nome de branch: `feature/732567-1848`, `bug/700920-1845`, `bug/700920-1842`.
 
 > **REGRA CRÍTICA — branches de versão usam hífen:** branches de versão devem seguir obrigatoriamente o padrão `{tipo}/{NR_CARD}-{versao}` (ex: `bug/755539-1851`, `bug/755539-1848`). **Nunca usar barra** como separador da versão (ex: não usar `bug/755539/1851`): como a branch da `pre_main` se chama `{tipo}/{NR_CARD}`, o Git não conseguiria criar `refs/heads/{tipo}/{NR_CARD}/{versao}` — o mesmo ref não pode ser arquivo e diretório ao mesmo tempo, e o `checkout -b` falha com `cannot lock ref`. O hífen é o padrão real já adotado no repositório.
->>>>>>> 31372464820f0989a86245253fc15137a177149b
 >
 > **⚠️ Sempre validar a branch atual logo após `checkout -b`, como comando separado:** em uma cadeia de comandos PowerShell (`git checkout X; git pull; git checkout -b Y; git cherry-pick ...`), se um comando intermediário falhar, os comandos seguintes da mesma cadeia podem executar silenciosamente **contra a branch errada** (uma branch de versão compartilhada, ex: `1851` ou `1842`) em vez de abortar. Isso já causou commits diretos acidentais em branches de versão compartilhadas nesta convenção. Antes de qualquer comando git que altere o repositório (`cherry-pick`, `commit`, `push`) após um `checkout -b`, rodar **como comando separado**:
 > ```bash
@@ -593,23 +574,13 @@ Exemplos de nome de branch: `feature/732567-1848`, `bug/700920-1845`, `bug/70092
 Quando a branch de versão já tem um commit do card (ex: fix original) e é necessário incluir um **ajuste complementar** vindo de um novo PR da `pre_main`, **não usar `git reset --hard`**. Fazer o cherry-pick diretamente sobre o commit existente:
 
 ```bash
-<<<<<<< HEAD
-git checkout {tipo}/{NR_CARD}_{versao}
-git cherry-pick {HASH_NOVO_COMMIT}
-git push origin {tipo}/{NR_CARD}_{versao}
-=======
 git checkout {tipo}/{NR_CARD}-{versao}
 git cherry-pick {HASH_NOVO_COMMIT}
 git push origin {tipo}/{NR_CARD}-{versao}
->>>>>>> 31372464820f0989a86245253fc15137a177149b
 ```
 
 O cherry-pick é aplicado sobre o estado pós-commit-antigo, que já corresponde ao contexto do novo commit — evitando conflitos. O PR ficará com **2 commits**, o que é correto e rastreável.
 
 Usar `git reset --hard` + cherry-pick apenas quando o commit antigo **não deve constar** no histórico (estava errado e deve ser substituído). Nesse caso conflitos são esperados pois o contexto da base diverge.
 
-<<<<<<< HEAD
-> **REGRA CRÍTICA — Um único PR por card por versão:** Nunca abrir um segundo PR para a mesma versão e mesmo card. Se já existe um PR aberto (ex: `bug/723247_1848` → PR #109922), todos os commits complementares devem ser adicionados à branch existente via cherry-pick — sem abrir nova branch ou novo PR. Isso vale mesmo quando o ajuste vem de uma contexto diferente (ex: correção de outro cenário do mesmo card). Antes de abrir qualquer PR de versão, verificar se já existe um PR aberto para aquela versão e card. Só abrir um segundo PR se o PR original já tiver sido mergeado.
-=======
 > **REGRA CRÍTICA — Um único PR por card por versão:** Nunca abrir um segundo PR para a mesma versão e mesmo card. Se já existe um PR aberto (ex: `bug/723247-1848` → PR #109922), todos os commits complementares devem ser adicionados à branch existente via cherry-pick — sem abrir nova branch ou novo PR. Isso vale mesmo quando o ajuste vem de uma contexto diferente (ex: correção de outro cenário do mesmo card). Antes de abrir qualquer PR de versão, verificar se já existe um PR aberto para aquela versão e card. Só abrir um segundo PR se o PR original já tiver sido mergeado.
->>>>>>> 31372464820f0989a86245253fc15137a177149b
