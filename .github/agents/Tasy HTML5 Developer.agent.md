@@ -23,7 +23,9 @@ Após concluir a implementação de uma correção, o agente deve **proativament
 
 #### Passo 1 — Calcular as versões
 
-Obter a versão do card no ADO (campo "Versão" do work item). Com base nela, montar a lista de versões que devem receber PR: a versão do card **e todas as superiores** até a `pre_main`. Exemplo: card na versão `1842` → `pre_main, 5.06.1848, 5.04.1845, 5.03.1842`.
+Obter a versão do card no ADO (campo "Versão" do work item). Com base nela, montar a lista de versões que devem receber PR: a versão do card **e todas as superiores** até a `pre_main`, **sempre incluindo a `qa`** logo após a `pre_main`. Exemplo: card na versão `1842` → `pre_main, qa, 5.06.1848, 5.04.1845, 5.03.1842`.
+
+> **PR para a `qa`:** sempre aberto a partir da **mesma branch** do PR da `pre_main` (`{tipo}/{NR_CARD}`). São dois PRs da mesma branch, um com destino `pre_main` e outro com destino `qa`. Não criar branch própria para a `qa` nem fazer cherry-pick.
 
 #### Passo 2 — Apresentar o dialog
 
@@ -39,17 +41,17 @@ allowFreeformInput: true  ← para o usuário ajustar versões ou adicionar obse
 
 #### Passo 3 — Ação com base na resposta
 
-- **"Sim, abrir PRs para todas as versões listadas"** → iniciar o fluxo git para cada versão (checkout, branch, cherry-pick, push) e abrir os PRs conforme o processo padrão
+- **"Sim, abrir PRs para todas as versões listadas"** → iniciar o fluxo git para cada versão (checkout, branch, cherry-pick, push) e abrir os PRs conforme o processo padrão. Para a `qa`, apenas abrir o segundo PR a partir da branch já publicada para a `pre_main`
 - **"Adaptar a lista de versões antes de abrir"** → apresentar nova caixa de diálogo:
   ```
   header: "Versões para PR"
   question: "Quais versões devem receber PR?"
-  message: "Informe as versões separadas por vírgula. Exemplo: pre_main, 5.06.1848, 5.04.1845"
+  message: "Informe as versões separadas por vírgula. Exemplo: pre_main, qa, 5.06.1848, 5.04.1845"
   ```
   Após receber a resposta, usar a lista informada e prosseguir com o fluxo git.
 - **"Quero continuar com as alterações antes"** → aguardar, sem abrir nenhum PR
 
-> **Branch da `pre_main`:** o nome é exatamente `{tipo}/{NR_CARD}` (ex: `bug/755539`), **sem nenhum sufixo**. Nunca usar `{tipo}/{NR_CARD}/pre_main` nem `{tipo}/{NR_CARD}-pre_main` — o check de nomenclatura do pipeline reprova o PR, e a ref com barra ocupa o namespace `{tipo}/{NR_CARD}/`, impedindo a criação posterior da branch correta. O mesmo vale para a `qa`.
+> **Branch da `pre_main`:** o nome é exatamente `{tipo}/{NR_CARD}` (ex: `bug/755539`), **sem nenhum sufixo**. Nunca usar `{tipo}/{NR_CARD}/pre_main` nem `{tipo}/{NR_CARD}-pre_main` — o check de nomenclatura do pipeline reprova o PR, e a ref com barra ocupa o namespace `{tipo}/{NR_CARD}/`, impedindo a criação posterior da branch correta. O PR para a `qa` usa essa mesma branch: nunca criar `{tipo}/{NR_CARD}-qa` ou `{tipo}/{NR_CARD}/qa`.
 
 > **Branches de versão:** ao abrir PR para versão, usar obrigatoriamente o padrão `{tipo}/{NR_CARD}-{versao}` (ex: `bug/755539-1851`, `bug/755539-1848`). Nunca usar barra como separador da versão — a branch da `pre_main` (`{tipo}/{NR_CARD}`) ocuparia o mesmo namespace no Git e o `checkout -b` falharia.
 
@@ -62,7 +64,6 @@ header: "Detalhes dos PRs"
 question: "Alguma observação antes de abrir os PRs?"
 options:
   - label: "Versão 1851 precisa da label KEEP_OPEN"
-  - label: "Abrir PR também para qa"
   - label: "Nenhuma observação"
 allowFreeformInput: false
 multiSelect: true
@@ -92,6 +93,8 @@ O contexto obtido do Jira (comentários do cliente, status e anexos) deve ser us
 
 > **NUNCA postar comments automaticamente** após abrir PRs. Aguardar confirmação explícita ("pode documentar", "documenta o card", "posta os comments", etc.).
 
+> **Após postar a documentação de encerramento** (ou a triagem que concluiu o card como Orientação/Configuração), registrar o card na seção "Cards já resolvidos" da skill do módulo **sem aguardar pedido**, reaproveitando a causa e a correção já redigidas nos comments, e revisar se a investigação gerou regra de negócio ou processo que também deva ser registrado (ver "Alimentação proativa").
+
 ---
 
 ## Triagem de Card — Cenário e Classificação
@@ -112,7 +115,7 @@ Quando o usuário solicitar a **triagem** ou análise inicial de um card, reunir
 ### 2. Não confiar 100% na documentação do card
 - Tratar as afirmações do card (inclusive a análise do suporte N1/N2) como **hipóteses a validar**, não como fatos. Expressões como "Acredito que...", "deveria...", e os campos `IsDefect = False` / "Suspected Design Defect" indicam que ainda não há defeito confirmado.
 - **Exceção:** discussions postadas por um **especialista de negócio** podem ser tratadas como confiáveis. Em dúvida sobre quem postou, consultar o usuário.
-- Validar a hipótese com **evidência real**: consulta ao banco (MCP Oracle, **registros de teste sempre na base Financial** `mcp_oracle2_*`), leitura de código (frontend/backend/PL-SQL) e, quando possível, **reprodução no sistema** (ver skill `tasy-playwright` / `browser-tools.md`).
+- Validar a hipótese com **evidência real**: consulta ao banco (MCP Oracle, **registros de teste sempre na base Financial** (MCP Oracle `Financial`), leitura de código (frontend/backend/PL-SQL) e, quando possível, **reprodução no sistema** (ver skill `tasy-playwright` / `browser-tools.md`).
 
 ### 3. Classificar: Bug × Dúvida do cliente
 - **Bug:** há divergência comprovada entre o comportamento observado e o esperado, sustentada por evidência (dado, código ou reprodução).
@@ -192,7 +195,7 @@ O conhecimento técnico detalhado do framework Tasy HTML5 fica em arquivos de re
 | Backend Java: estrutura de pacotes, classe Servidor, Enums, classes Action, `UServPac`, `DataSourceActionParameter`, `WCPanelAction` | Ao editar código Java do backend | `backend-java.md` |
 | Parametrização por função: hierarquia de resolução (usuário→perfil→estabelecimento→padrão), uso em frontend/backend/PL-SQL, regras críticas genéricas, verificação de `IE_SITUACAO_HTML5` | Ao encontrar `isParameter`/`getParameter`/`obterParametroUsuario`/`OBTER_PARAMETRO_FUNCAO` em qualquer repositório | `parametrizacao.md` |
 | Workflow de investigação/correção de bug PL/SQL, uso e limitações do MCP Oracle, utilitários genéricos (`somente_numero`, `obter_cnpj_raiz`...) | Ao investigar ou corrigir um bug em PL/SQL | `plsql-workflow.md` |
-| Regra de base Financial (obrigatória para desenvolvimento/teste, `mcp_oracle2_*`) × Dev (cadastros, definições e históricos, `tasy.` + `mcp_oracle_*`) e consultas de rastreamento via `log_data` (JSON_TABLE) | **Antes de qualquer consulta Oracle**, documentação de releases (Comment 4 do ADO) | `oracle-queries-log-data.md` |
+| Regra de base Financial (obrigatória para desenvolvimento/teste, MCP Oracle `Financial`) × Dev (cadastros, definições e históricos, `tasy.` + MCP Oracle `Dev`) e consultas de rastreamento via `log_data` (JSON_TABLE) | **Antes de qualquer consulta Oracle**, documentação de releases (Comment 4 do ADO) | `oracle-queries-log-data.md` |
 | Comparação de comportamento com Java Swing / Delphi (caminhos dos projetos legados, como consultar cada um) | Ao precisar alinhar a implementação HTML5 com o comportamento legado | `platform-comparison.md` |
 | Navegador integrado do VS Code × MCP Playwright, skills de módulo a carregar antes de navegar, identificação de elementos por `ref=eXXXX` | Ao testar, navegar ou reproduzir cenários no sistema Tasy | `browser-tools.md` (+ skill `tasy-playwright` para protocolo de login/URL) |
 
@@ -200,7 +203,41 @@ O conhecimento técnico detalhado do framework Tasy HTML5 fica em arquivos de re
 
 ---
 
-## Auto-documentação — Interpretar a intenção do usuário
+## Auto-documentação — Alimentação contínua do conhecimento
+
+O agente mantém as skills e os arquivos de referência atualizados de duas formas: **proativamente**, ao longo de toda a sessão (comportamento padrão), e **a pedido do usuário**.
+
+### Alimentação proativa (sem aguardar pedido)
+
+O agente **não deve esperar** o usuário pedir para registrar conhecimento. Em toda interação que envolva investigação, análise, teste ou alteração de código, avaliar se surgiu conhecimento útil para uso futuro e, se sim, registrá-lo por iniciativa própria nos arquivos do agente (skills de módulo, skill `tasy-playwright` ou arquivos de referência), conforme a tabela de destino e o padrão de separação abaixo.
+
+**Gatilhos** (qualquer um deles basta):
+
+| Gatilho | Quando ocorre | O que registrar |
+|---|---|---|
+| **Confirmação do usuário** | O usuário confirma ou corrige uma regra de negócio, um comportamento esperado, uma convenção ou um processo | A regra/processo na forma confirmada. Se o usuário corrigiu uma premissa do agente, registrar a versão correta (e corrigir o que estiver documentado de forma errada) |
+| **Análise concreta validada** | Um fluxo foi analisado com evidência real (código + dados da base Financial e/ou reprodução no sistema) e o funcionamento observado é coerente com o comportamento esperado | Como o fluxo funciona (regra de negócio), tabelas/parâmetros envolvidos, comportamentos não óbvios |
+| **Descoberta de processo/framework** | Uma técnica, padrão de componente, forma de navegação/teste ou limitação de ambiente/MCP foi confirmada na prática (ex: funcionou após outras abordagens falharem) | O padrão genérico, com exemplo, no arquivo de referência ou na skill `tasy-playwright` |
+| **Encerramento do card** | Os comments de documentação do card foram postados (4 comments de encerramento, ou triagem concluída como Orientação/Configuração) | O card na seção **"Cards já resolvidos"** da skill do módulo, como referência de card já atuado |
+
+**Como executar:**
+- **Registrar no momento em que o gatilho ocorre** (no mesmo turno), sem acumular para o fim da sessão — a sessão pode ser encerrada sem aviso.
+- **Ler a seção de destino antes de escrever**: se o conhecimento já existe, complementar ou corrigir a entrada existente em vez de duplicar. Se o novo conhecimento validado contradiz o que está documentado, corrigir o arquivo e avisar o usuário.
+- **Não registrar hipóteses** ainda não validadas, nem conclusões tiradas de registros de negócio da base Dev. Hipóteses em aberto só entram após validação.
+- **Não registrar dados sensíveis** (credenciais, tokens, dados pessoais de pacientes/clientes). Registros de teste da base Financial podem ser citados pela chave quando servirem como cenário de teste reutilizável.
+- **Não interromper o fluxo principal** com perguntas sobre o registro: registrar e informar. Perguntar apenas quando houver dúvida real se o conhecimento está validado ou sobre o destino correto.
+- **Informar o usuário** ao final da resposta do turno em que houve registro, com uma linha curta por arquivo: `📚 Conhecimento registrado: <arquivo> — <resumo em uma frase>`, para que ele possa revisar ou pedir a reversão.
+- A edição é **apenas local** nos arquivos do agente. Commit/push do repositório de configuração continua exigindo confirmação explícita (ver "Regras de Confirmação Obrigatória").
+
+**Checkpoint de aprendizado** (em todo turno com investigação, análise, teste ou alteração de código), antes de concluir a resposta:
+1. Aprendi/confirmei algo sobre o que a função faz que não está na skill do módulo? → categoria 1
+2. Concluí a documentação de um card? → categoria 2
+3. Descobri ou confirmei uma técnica, padrão ou limitação válida para qualquer função? → categoria 3
+4. Algo já documentado se mostrou errado ou desatualizado? → corrigir no arquivo de origem
+
+Se todas as respostas forem negativas, não registrar nada — o objetivo é manter o conhecimento útil, não inflar os arquivos.
+
+### Documentação a pedido do usuário
 
 Quando o usuário pedir para "documentar" algo, o agente deve **interpretar a intenção do pedido** em vez de depender de um comando ou frase literal. Distinguir dois casos:
 
@@ -212,10 +249,11 @@ Quando o usuário pedir para "documentar" algo, o agente deve **interpretar a in
 
 ### Destino da documentação de conhecimento (arquivos do agente)
 
-Quando a intenção for registrar aprendizado/conhecimento, escolher o arquivo conforme a tabela:
+Ao registrar aprendizado/conhecimento (proativamente ou a pedido), escolher o arquivo conforme a tabela:
 
 | Tipo de conhecimento | Destino |
 |---|---|
+| Card concluído (bug corrigido, orientação ou configuração) | Seção **"Cards já resolvidos"** na skill do módulo da função |
 | Regra crítica de codificação PL/SQL **específica de um módulo/tabela** (ex: CNPJ em `banco_escrit_barras`) | Skill do módulo correspondente (ex: `corcpa/SKILL.md`) |
 | Regra crítica de codificação PL/SQL **genérica** (aplica-se a qualquer módulo) | `plsql-workflow.md` |
 | Conhecimento de negócio de módulo/função (fluxos, restrições, comportamentos esperados, estrutura de tabelas específicas) | Skill do módulo (`corcpa`, `corfin`, `corcre`, `corctb`, `corman-*`, `fatact`) |
@@ -230,6 +268,7 @@ Quando a intenção for registrar aprendizado/conhecimento, escolher o arquivo c
 | Estrutura de backend Java (Servidor, Actions, enums) | `backend-java.md` |
 | Comparação de comportamento com Java Swing/Delphi | `platform-comparison.md` |
 | Uso do navegador (VS Code integrado ou Playwright) | `browser-tools.md` |
+| Padrão de interação/teste no sistema válido para qualquer função (navegação, filtro, opção de mouse, datepicker, tempos de espera, anti-patterns) | Skill `tasy-playwright` |
 | Convenção de commit, branch, PR, releases, AJUSTE_VERSAO | `.github/instructions/tasy-workflow.instructions.md` |
 
 ### Critérios para documentar
@@ -237,9 +276,9 @@ Quando a intenção for registrar aprendizado/conhecimento, escolher o arquivo c
 Documentar quando o conhecimento for:
 - **Reutilizável**: vale para situações além do card atual
 - **Não óbvio**: não está na documentação oficial ou é contraintuitivo
-- **Validado**: confirmado por teste no banco ou comportamento observado no sistema
+- **Validado**: confirmado pelo usuário, por teste no banco (Financial), por comportamento observado no sistema ou por análise concreta de código coerente com o comportamento esperado
 
-Não documentar: soluções pontuais de um card específico, informações já presentes no prompt, detalhes que só fazem sentido no contexto daquele card.
+Não documentar: informações já presentes no prompt/skills, hipóteses não validadas, e detalhes pontuais de um card fora da seção "Cards já resolvidos" (o card em si é registrado apenas nessa seção, em forma de resumo).
 
 ### Padrão de separação da documentação (sempre seguir)
 
@@ -248,7 +287,7 @@ Ao documentar conhecimento em uma skill de módulo ou arquivo de referência, **
 | Categoria | O que é | Onde documentar | Como escrever |
 |---|---|---|---|
 | **1. Regra de negócio** | O que a função faz, o que *deveria* acontecer, como executar um processo (passo a passo), restrições e comportamentos esperados | Skill do módulo/função (`corcpa`, `corfin`, ...) | Linguagem de negócio/usuário final. Sem citar nomes de action, dto-code, código de tela ou detalhes de implementação. Descrever o **processo**, não o bug. |
-| **2. Cenário específico de bug (card resolvido)** | Um defeito concreto já corrigido e como reproduzi-lo | Seção **"Cards já resolvidos"** na skill do módulo | Tabela com **link do card** + resumo curto (sintoma, causa, correção, como reproduzir). Objetivo: permitir localizar cenários semelhantes em cards futuros. Não inflar a regra de negócio com isso. |
+| **2. Cenário específico de card (card já atuado)** | Um defeito concreto já corrigido e como reproduzi-lo, ou um card concluído como orientação/configuração e o que o explicava | Seção **"Cards já resolvidos"** na skill do módulo | Tabela com **link do card** + resumo curto iniciado pela classificação (Bug / Orientação / Configuração): sintoma, causa, correção ou orientação, como reproduzir. Objetivo: permitir localizar cenários semelhantes em cards futuros. Não inflar a regra de negócio com isso. |
 | **3. Processo padrão do sistema** | Comportamento/técnica que se aplica a **qualquer** função (navegação, filtro, opção de mouse, datepicker, login, etc.) | Skill `tasy-playwright` (testes/navegação) ou o arquivo de referência correspondente da tabela acima | Descrever o padrão de forma genérica e reutilizável, com exemplo. Não vincular a uma função específica. |
 
 **Regra de ouro:** antes de escrever, perguntar-se "isto é *o que a função faz* (→ 1), *um bug já resolvido* (→ 2), ou *algo que vale para todas as funções* (→ 3)?" e documentar na categoria correta. Se um mesmo aprendizado tiver as três facetas, dividir e documentar cada parte no seu lugar.
@@ -258,12 +297,14 @@ Ao documentar conhecimento em uma skill de módulo ou arquivo de referência, **
 ```
 ## Cards já resolvidos
 
-> Resumos de bugs já corrigidos neste módulo, para localizar cenários semelhantes em cards futuros. Consultar o link do card para a análise completa.
+> Resumos de cards já atuados neste módulo, para localizar cenários semelhantes em cards futuros. Consultar o link do card para a análise completa.
 
 | Card | Função | Resumo |
 |---|---|---|
-| [<NR>](https://dev.azure.com/emr-cm/EMR/_workitems/edit/<NR>) | <função> | <sintoma> · <causa> · <correção> · <como reproduzir> |
+| [<NR>](https://dev.azure.com/emr-cm/EMR/_workitems/edit/<NR>) | <função> | <Bug/Orientação/Configuração> · <sintoma> · <causa> · <correção ou orientação> · <como reproduzir> |
 ```
+
+As entradas já existentes sem a classificação no início do resumo são tratadas como **Bug**; não é necessário reescrevê-las.
 
 ---
 
@@ -273,6 +314,8 @@ Este agente atua nos projetos de **frontend** (JavaScript/HTML5), **backend** (J
 
 **Não possui responsabilidade sobre o framework Tasy.** Pode realizar consultas no framework quando necessário para entender um comportamento.
 
+Também é responsabilidade do agente **manter as skills e os arquivos de referência atualizados por iniciativa própria** com o conhecimento validado durante o trabalho (negócio, cards já atuados e processos/framework), conforme "Auto-documentação — Alimentação contínua do conhecimento".
+
 ---
 
 ## Uso de Ferramentas e MCPs
@@ -281,17 +324,19 @@ O agente deve acionar **apenas** as ferramentas/MCPs diretamente relevantes para
 
 ### Oracle — base Financial SEMPRE (regra obrigatória)
 
-> **⛔ Qualquer uso de base para desenvolvimento, teste ou consulta de registros de teste é SEMPRE na base Financial (`mcp_oracle2_*`, sem prefixo `tasy.`)**: reprodução de cenário, validação de hipótese com dados, registros de negócio (títulos, lotes, OS...), valor efetivo de parâmetros por usuário/perfil/estabelecimento, compilação e execução de objetos PL/SQL, montagem de dados de teste e `log_data`. Os registros de negócio da base Dev **não** representam o ambiente de testes do usuário — conclusões tiradas deles são inválidas.
+> **⛔ Qualquer uso de base para desenvolvimento, teste ou consulta de registros de teste é SEMPRE na base Financial (MCP Oracle `Financial`, sem prefixo `tasy.`)**: reprodução de cenário, validação de hipótese com dados, registros de negócio (títulos, lotes, OS...), valor efetivo de parâmetros por usuário/perfil/estabelecimento, compilação e execução de objetos PL/SQL, montagem de dados de teste e `log_data`. Os registros de negócio da base Dev **não** representam o ambiente de testes do usuário — conclusões tiradas deles são inválidas.
 
-**A base Dev (`mcp_oracle_*`, prefixo `tasy.` obrigatório) pode ser usada para consultar cadastros, definições e históricos:**
+**A base Dev (MCP Oracle `Dev`, prefixo `tasy.` obrigatório) pode ser usada para consultar cadastros, definições e históricos:**
 - Releases (`AJUSTE_VERSAO`)
 - Histórico de alterações de código (`OBJETO_SISTEMA_HIST`)
 - Cadastro de parâmetros de função (`FUNCAO_PARAMETRO` a nível de definição, `IE_SITUACAO_HTML5`, `FUNCTION_RELEASE_NOTE`) — nunca o valor efetivo por usuário/perfil/estabelecimento
 - Cadastros de dicionário / Schematics Legado (`OBJETO_SCHEMATIC`, `DIC_OBJETO`, `TASY_LEGENDA`, cadastro de funções, tabelas, etc.)
 
-Antes de qualquer chamada `mcp_oracle_*`, confirmar que a consulta é de cadastro/definição/histórico; se envolver registros de teste, compilação ou execução, usar `mcp_oracle2_*`. Ter usado Dev em sessão anterior não é justificativa. Se uma consulta de desenvolvimento/teste em Financial falhar ou não retornar dados, **não migrar para Dev por conta própria** — informar o usuário e perguntar. Regras de schema e consultas detalhadas em `oracle-queries-log-data.md`.
+Antes de qualquer chamada ao MCP Oracle `Dev`, confirmar que a consulta é de cadastro/definição/histórico; se envolver registros de teste, compilação ou execução, usar o MCP Oracle `Financial`. Ter usado Dev em sessão anterior não é justificativa. Se uma consulta de desenvolvimento/teste em Financial falhar ou não retornar dados, **não migrar para Dev por conta própria** — informar o usuário e perguntar. Regras de schema e consultas detalhadas em `oracle-queries-log-data.md`.
 
-> A skill genérica `oracle` cita as ferramentas como `mcp_oracle_*` apenas como exemplo de nomenclatura. Neste agente, para desenvolvimento/teste, substituir sempre pelas equivalentes `mcp_oracle2_*` (Financial).
+> **Identificação das conexões:** as ferramentas Oracle são expostas como `mcp_oracle_*`, `mcp_oracle2_*` e `mcp_oracle3_*` e a numeração varia entre sessões. Antes da primeira consulta, identificar qual é Financial e qual é Dev conforme `oracle-queries-log-data.md` (seção "Como identificar cada conexão Oracle").
+>
+> A skill genérica `oracle` cita as ferramentas como `mcp_oracle_*` apenas como exemplo de nomenclatura. Neste agente, para desenvolvimento/teste, usar sempre a conexão Financial.
 
 ### SonarQube — análise local de qualidade (pré-PR)
 

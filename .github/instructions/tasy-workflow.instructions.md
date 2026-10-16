@@ -48,6 +48,7 @@ Após implementar e testar uma correção de Bug, **sempre** registrar quatro co
 > - Negrito: `<b>texto</b>` (nunca `**texto**`)
 > - Parágrafos: envolver o conteúdo em `<div>...</div>`
 > - Caracteres especiais: `>` → `&gt;`, `"` → `&quot;`
+> - Links (PRs, cards, features, etc.): **sempre como hiperlink clicável**, exibindo a própria URL como texto e em linha separada: `<a href="https://github.com/.../pull/XXXX">https://github.com/.../pull/XXXX</a>`. Nunca postar a URL sem a tag `<a>` nem como markdown `[texto](url)`.
 > - Passar sempre `"format": "html"` na chamada da ferramenta
 > - Não usar travessão (—) em meio a frases. Substituir por vírgula ou ponto conforme o contexto.
 
@@ -79,8 +80,8 @@ git status --short
 **Instruções de preenchimento do template:**
 - **Questão 1:** Localizar o PR que introduziu o bug via `git log`. Com o PR em mãos, verificar no GitHub se ele estava vinculado a uma User Story (Feature) ou a um Bug. Caso não seja possível determinar com certeza, questionar o usuário antes de preencher.
 - **Questão 2:** Descrever a localização no sistema como caminho de navegação, sem informar código da função. Exemplo: `Financeiro > Fluxo de Caixa > Caixa de Recebimento > Botão direito > Cancelar`.
-- **Questão 4:** Para arquivos PL/SQL, verificar via `tasy.OBJETO_SISTEMA_HIST` (base Dev) se houve alteração recente (aproximadamente último ano) — nunca via `git log`/GitHub. Para os demais repositórios (frontend/backend), verificar via `git log` se houve alteração recente (aproximadamente último ano) nos arquivos envolvidos. Se sim, identificar o PR causador, fazer uma breve descrição do que foi alterado e informar o link do PR como **URL crua em linha separada** (ex: `https://github.com/...`), nunca como markdown `[texto](url)`. Referenciar a OS/feature pelo padrão "OS XXXXXXX" (somente o número, sem prefixo). Atenção: mensagens de commit do git frequentemente usam os prefixos `[SO-XXXXXXX]` ou `[OS-XXXXXXX]` — ambos identificam a mesma Ordem de Serviço. O prefixo `SO-` é utilizado apenas em mensagens de commit (onde serve de referência para validações do PR); na documentação do card ADO, usar sempre apenas "OS XXXXXXX". Quando o commit referenciar `AB#XXXXXX`, trata-se de um card do Azure Boards (Bug, User Story, Feature ou Task) — nesse caso mencionar como "Card XXXXXX", não como OS. Se não houve alteração recente, informar que não. Em caso de dúvida sobre a janela de tempo, questionar o usuário. **Caso o arquivo seja um JSON do Schematics DX** (ex: `cormanos.json`) e o commit causador seja a criação do arquivo (mensagem tipo `ConvertToDX`), **antes de apontar a feature de conversão DX como causa raiz, consultar o Schematics Legado no banco Oracle** para verificar se o registro problemático já existia lá (ver seção "Schematics Legado — Root Cause" abaixo). Se o registro existia no Legado antes da conversão, a causa raiz é o Legado (descrever o registro e a data de `dt_atualizacao` da tabela correspondente) e referenciar a feature de conversão apenas como o veículo que trouxe o problema para o DX. Se o registro não existia no Legado, então a causa raiz é de fato a feature de conversão DX — informar o link https://dev.azure.com/emr-cm/EMR/_workitems/edit/570067. **Não mencionar o nome do usuário** que realizou a alteração no Legado. **Caso o problema seja relacionado a alteração de timezone**, a causa raiz é a feature https://dev.azure.com/emr-cm/EMR/_workitems/edit/667577 — informar o link dessa feature na descrição da questão 4.
-- **Questão 5:** Fazer uma breve descrição do que foi corrigido e informar **apenas o link do PR da pre_main** como **URL crua em linha separada** (ex: `https://github.com/...`), nunca como markdown `[texto](url)`. Não listar todos os PRs de versão — somente o pre_main. Deve ser preenchido após abertura do PR no GitHub. Enquanto não houver PR, questionar o usuário para abertura do PR.
+- **Questão 4:** Para arquivos PL/SQL, verificar via `tasy.OBJETO_SISTEMA_HIST` (base Dev) se houve alteração recente (aproximadamente último ano) — nunca via `git log`/GitHub. Para os demais repositórios (frontend/backend), verificar via `git log` se houve alteração recente (aproximadamente último ano) nos arquivos envolvidos. Se sim, identificar o PR causador, fazer uma breve descrição do que foi alterado e informar o link do PR como **hiperlink clicável em linha separada** (`<a href="URL">URL</a>`, ver "FORMATAÇÃO DOS COMENTÁRIOS ADO"), nunca como markdown `[texto](url)`. Referenciar a OS/feature pelo padrão "OS XXXXXXX" (somente o número, sem prefixo). Atenção: mensagens de commit do git frequentemente usam os prefixos `[SO-XXXXXXX]` ou `[OS-XXXXXXX]` — ambos identificam a mesma Ordem de Serviço. O prefixo `SO-` é utilizado apenas em mensagens de commit (onde serve de referência para validações do PR); na documentação do card ADO, usar sempre apenas "OS XXXXXXX". Quando o commit referenciar `AB#XXXXXX`, trata-se de um card do Azure Boards (Bug, User Story, Feature ou Task) — nesse caso mencionar como "Card XXXXXX", não como OS. Se não houve alteração recente, informar que não. Em caso de dúvida sobre a janela de tempo, questionar o usuário. **Caso o arquivo seja um JSON do Schematics DX** (ex: `cormanos.json`) e o commit causador seja a criação do arquivo (mensagem tipo `ConvertToDX`), **antes de apontar a feature de conversão DX como causa raiz, consultar o Schematics Legado no banco Oracle** para verificar se o registro problemático já existia lá (ver seção "Schematics Legado — Root Cause" abaixo). Se o registro existia no Legado antes da conversão, a causa raiz é o Legado (descrever o registro e a data de `dt_atualizacao` da tabela correspondente) e referenciar a feature de conversão apenas como o veículo que trouxe o problema para o DX. Se o registro não existia no Legado, então a causa raiz é de fato a feature de conversão DX — informar o link https://dev.azure.com/emr-cm/EMR/_workitems/edit/570067. **Não mencionar o nome do usuário** que realizou a alteração no Legado. **Caso o problema seja relacionado a alteração de timezone**, a causa raiz é a feature https://dev.azure.com/emr-cm/EMR/_workitems/edit/667577 — informar o link dessa feature na descrição da questão 4.
+- **Questão 5:** Fazer uma breve descrição do que foi corrigido e informar **apenas o link do PR da pre_main** como **hiperlink clicável em linha separada** (`<a href="URL">URL</a>`), nunca como markdown `[texto](url)`. Não listar todos os PRs de versão — somente o pre_main. Deve ser preenchido após abertura do PR no GitHub. Enquanto não houver PR, questionar o usuário para abertura do PR.
 - **Questão 6:** Informar a **data completa** (dia/mês/ano) em que o problema foi introduzido. Para arquivos PL/SQL, obter essa data via `DT_ATUALIZACAO` do registro correspondente em `tasy.OBJETO_SISTEMA_HIST` (nunca via `git log`). Para os demais repositórios, obter via `git log --format="%ai %s"` no arquivo alterado. Informar também um breve motivo de por que não havia sido identificado antes. Usar tom cauteloso quando não for possível afirmar com certeza (ex: "possivelmente não foi executado nos testes" em vez de "não era exercido nos testes"). Não incluir hash de commit. **Para arquivos Schematics DX**, usar `git log --diff-filter=A --format="%ai %s" -- <arquivo>` para obter a data de criação do JSON. Se o registro problemático já existia no Schematics Legado (verificado via Oracle MCP), usar a `dt_atualizacao` do registro no Legado como data de referência de introdução do defeito, pois o problema existia antes da conversão DX.
 - **Questão 7:** Sempre preencher com "Análise, Testes exploratórios."
 - **Questão 8:** Marcar normalmente apenas uma opção — a mais comum é "Funcionalidade" ou "Desempenho". Outras opções podem ser marcadas em casos excepcionais quando realmente se aplicarem. **Manter sempre todas as opções no template** — substituir `(  )` por `(X)` nas opções aplicáveis e manter as demais como `(  )`. Nunca remover as opções não marcadas.
@@ -197,7 +198,7 @@ Este comment é postado por último e lista todos os PRs abertos por repositóri
 
 **Regras de preenchimento:**
 - Listar apenas os repositórios que foram efetivamente alterados no card. Omitir seções de repositórios sem alteração.
-- Informar os links dos PRs como URLs cruas (sem markdown), um por linha, precedidos da versão correspondente.
+- Informar os links dos PRs como hiperlinks clicáveis (`<a href="URL">URL</a>`, sem markdown), um por linha, precedidos da versão correspondente.
 - Labels de versão do frontend e backend incluem o prefixo completo (ex: `5.06.1848`); no PL/SQL usar apenas o número (ex: `1848`).
 - Na seção **RELEASES**, listar os números de release de cada versão corrigida, obtidos via consulta na tabela `AJUSTE_VERSAO` (base Dev). **O identificador do release é sempre o `NR_SEQUENCIA` do registro** — nunca a coluna `NR_RELEASE` (que é apenas um contador interno auxiliar e não corresponde ao número usado para aprovação/rastreio do release). Listar todos os releases da versão (HTML5 e Java/Delphi) separados por vírgula em uma única linha, sem identificar o tipo. O formato facilita cópia direta para aprovação.
 - Informar também o status do conjunto de releases de cada versão conforme a seguinte lógica:
@@ -268,6 +269,8 @@ ALTERAÇÕES DE DICIONÁRIO:
 <TABELA> (<PK>):
   <CAMPO>: '<valor_anterior>' -> '<valor_final>'
 ```
+
+> Na postagem em HTML, cada URL de PR da estrutura acima deve virar hiperlink: `<a href="URL">URL</a>`.
 
 > A seção **ALTERAÇÕES DE DICIONÁRIO** só deve ser incluída quando a consulta ao `log_data` retornar resultados. Omitir completamente quando não houver alterações de dicionário registradas para o card. Usar a query de estado final documentada em `.github/agents/tasy-html5-developer/oracle-queries-log-data.md` para obter as informações.
 
@@ -351,7 +354,7 @@ O sistema Tasy possui múltiplas versões com política de manutenção ativa. A
 - **`qa`** — branch paralela à `pre_main`, usada para validação de testes sistêmicos internos. Nem todo commit de `qa` vai para cliente — apenas os que passarem pela `pre_main`.
 - **`dev`** — branch de desenvolvimento consolidada. Não recebe commits diretos.
 
-> **Sempre questionar o usuário se é necessário abrir PR para a `qa`.** Nem sempre é necessário.
+> **Sempre abrir também o PR para a `qa`**, usando a **mesma branch** do PR da `pre_main` (`{tipo}/{NR_CARD}`): são dois PRs da mesma branch, um com destino `pre_main` e outro com destino `qa`, com o mesmo título e template. Não criar branch própria para a `qa` nem fazer cherry-pick. Commits de ajuste feitos depois nessa branch (ex: code review) entram automaticamente nos dois PRs. Conferir que o PR para a `qa` mostra apenas os commits do card; se trouxer commits extras da `pre_main` (qa desatualizada), avisar o usuário.
 
 ---
 
@@ -381,7 +384,7 @@ A branch deve conter as alterações realizadas.
 #### Passo 2 — Criar branch de trabalho
 
 ```bash
-# PR para pre_main (ou qa)
+# PR para pre_main (a mesma branch também abre o PR para a qa)
 git checkout -b {tipo}/{NR_CARD}
 
 # PR para uma versão
@@ -390,7 +393,7 @@ git checkout -b {tipo}/{NR_CARD}-{versao}
 
 - `{tipo}` é definido pelo tipo do work item no ADO: **`feature`** para Feature/User Story, **`bug`** para Bug.
 - `{versao}` é o número da versão, sempre **sem o prefixo `5.xx.`** (ex: `1848`, `1845`, `1842`, `1838`), em todos os repositórios.
-- A branch de `pre_main` (e de `qa`) **não recebe sufixo nenhum** — nem de versão, nem o nome da branch de destino. O nome é exatamente `{tipo}/{NR_CARD}`.
+- A branch de `pre_main` **não recebe sufixo nenhum** — nem de versão, nem o nome da branch de destino. O nome é exatamente `{tipo}/{NR_CARD}`, e é essa mesma branch que abre o PR para a `qa`.
 - O separador entre o número do card e a versão é **hífen** (`-`), nunca barra. Usar barra criaria colisão de namespace no Git com a branch `{tipo}/{NR_CARD}` da `pre_main` (o Git não permite que um mesmo ref seja arquivo e diretório ao mesmo tempo).
 - **Nunca usar ponto** no nome da branch.
 - Exemplos: `feature/732567`, `feature/732567-1848`, `bug/700920`, `bug/700920-1845`
@@ -444,6 +447,7 @@ git push origin {tipo}/{NR_CARD}
 Após o push, abrir Pull Request para a branch de destino (`pre_main`, `qa` ou versão), preenchendo o template abaixo e adicionando a **label** correspondente à branch de destino:
 
 - `pre_main` → label `pre_main`
+- `qa` → label `qa` (PR aberto a partir da mesma branch do PR da `pre_main`)
 - `5.06.1848` → label `5.06.1848`
 - `5.04.1845` → label `5.04.1845`
 - etc.
@@ -519,7 +523,7 @@ no
 
 Após abrir o PR para `pre_main`, verificar no card ADO qual é a versão do bug. A versão deve ser lida no **campo "Versão"** do work item no Azure DevOps — não se basear pelo título do card, pois pode não refletir a versão correta. O commit deve ser aplicado na versão do card **e em todas as versões superiores** até a `pre_main`.
 
-**Exemplo:** card na versão `1842` → commits em `5.03.1842`, `5.04.1845`, `5.06.1848` e `pre_main` (e `qa` se necessário).
+**Exemplo:** card na versão `1842` → commits em `5.03.1842`, `5.04.1845`, `5.06.1848` e `pre_main`, mais o PR para a `qa` a partir da mesma branch da `pre_main` (sem cherry-pick).
 
 > **PROIBIDO:** Nunca aplicar cherry-pick em versões **inferiores** à versão do card. A versão mínima é sempre a versão lida no campo "Versão" do ADO. Exemplo: card na versão `1845` → PRs apenas em `5.04.1845`, `5.06.1848` e `pre_main`. Versões `1842` e `1838` **não devem receber PR**.
 
@@ -545,7 +549,7 @@ git push origin {tipo}/{NR_CARD}-{versao}
 
 Exemplos de nome de branch: `feature/732567-1848`, `bug/700920-1845`, `bug/700920-1842`.
 
-> **REGRA CRÍTICA — branches de versão usam hífen:** branches de versão devem seguir obrigatoriamente o padrão `{tipo}/{NR_CARD}-{versao}` (ex: `bug/755539-1851`, `bug/755539-1848`). **Nunca usar barra** como separador da versão (ex: não usar `bug/755539/1851`): como a branch da `pre_main` se chama `{tipo}/{NR_CARD}`, o Git não conseguiria criar `refs/heads/{tipo}/{NR_CARD}/{versao}` — o mesmo ref não pode ser arquivo e diretório ao mesmo tempo, e o `checkout -b` falha com `cannot lock ref`. O hífen é o padrão real já adotado no repositório.
+> **REGRA CRÍTICA — branches de versão usam hífen:** branches de versão devem seguir obrigatoriamente o padrão `{tipo}/{NR_CARD}-{versao}` (ex: `bug/755539-1851`, `bug/755539-1848`). **Nunca usar barra** como separador da versão (ex: não usar `bug/755539/1851`): como a branch da `pre_main` se chama `{tipo}/{NR_CARD}`, o Git não conseguiria criar `refs/heads/{tipo}/{NR_CARD}/{versao}` — o mesmo ref não pode ser arquivo e diretório ao mesmo tempo, e o `checkout -b` falha com `cannot lock ref`. O hífen é o padrão a usar em branches novas. O underscore (`bug/755539_1851`) também passa no check `Branch Name` e aparece em branches existentes dos repositórios, mas não deve ser usado em branches novas — se um PR já foi aberto com underscore, não é necessário recriá-lo.
 >
 > **⚠️ Sempre validar a branch atual logo após `checkout -b`, como comando separado:** em uma cadeia de comandos PowerShell (`git checkout X; git pull; git checkout -b Y; git cherry-pick ...`), se um comando intermediário falhar, os comandos seguintes da mesma cadeia podem executar silenciosamente **contra a branch errada** (uma branch de versão compartilhada, ex: `1851` ou `1842`) em vez de abortar. Isso já causou commits diretos acidentais em branches de versão compartilhadas nesta convenção. Antes de qualquer comando git que altere o repositório (`cherry-pick`, `commit`, `push`) após um `checkout -b`, rodar **como comando separado**:
 > ```bash

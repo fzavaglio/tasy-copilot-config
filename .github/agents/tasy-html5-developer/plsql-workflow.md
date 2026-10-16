@@ -23,7 +23,7 @@ Ao receber um card de bug que envolva PL/SQL, seguir este fluxo em ordem:
 
 O MCP Oracle permite compilar e testar PL/SQL diretamente no banco sem precisar da aplicação.
 
-> **Base obrigatória: Financial (`mcp_oracle2_*`, sem prefixo `tasy.`).** Compilação, testes e consultas de registros de teste **nunca** são feitos na base Dev (`mcp_oracle_*`). A Dev fica restrita a consultas de cadastros, definições e históricos — ver regra completa em `oracle-queries-log-data.md`.
+> **Base obrigatória: Financial (MCP Oracle `Financial`, sem prefixo `tasy.`).** Compilação, testes e consultas de registros de teste **nunca** são feitos na base Dev (MCP Oracle `Dev`). A Dev fica restrita a consultas de cadastros, definições e históricos — ver regra completa em `oracle-queries-log-data.md`.
 
 **Quando usar:**
 - Compilar procedures/functions alteradas (`execute_plsql_ddl`)

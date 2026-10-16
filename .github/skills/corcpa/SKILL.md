@@ -114,7 +114,7 @@ Quando uma Ordem de Compra tem vencimento marcado para "Gerar Adiantamentos", a 
 
 ## Cards já resolvidos
 
-> Resumos de bugs já corrigidos neste módulo, para localizar cenários semelhantes em cards futuros. Consultar o link do card para a análise completa.
+> Resumos de cards já atuados neste módulo (bugs corrigidos, orientações e configurações), para localizar cenários semelhantes em cards futuros. Consultar o link do card para a análise completa.
 
 | Card | Função | Resumo |
 |---|---|---|

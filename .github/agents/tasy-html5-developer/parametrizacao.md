@@ -170,7 +170,7 @@ Sempre que encontrar **qualquer chamada de parâmetro de função** em qualquer 
 
 ### Passo 1 — Confirmar que o parâmetro está habilitado para HTML5
 
-Consultar na base **Dev** (`mcp_oracle_*`) — consulta de cadastro do parâmetro (definição, domínio, valor padrão, `IE_SITUACAO_HTML5`), permitida em Dev. Ver "Regra de preferência" em `oracle-queries-log-data.md`:
+Consultar na base **Dev** (MCP Oracle `Dev`) — consulta de cadastro do parâmetro (definição, domínio, valor padrão, `IE_SITUACAO_HTML5`), permitida em Dev. Ver "Regra de preferência" em `oracle-queries-log-data.md`:
 
 ```sql
 SELECT nr_sequencia, ds_parametro, ie_situacao_html5, cd_funcao
@@ -179,7 +179,7 @@ WHERE cd_funcao = <CD_FUNCAO>
   AND nr_sequencia = <NR_PARAMETRO>
 ```
 
-> Para consultar o **valor efetivo atual** do parâmetro (`VL_PARAMETRO`) durante testes/investigação (não a situação HTML5), usar **Financial** (`mcp_oracle2_*`, sem prefixo `tasy.`), conforme a regra geral.
+> Para consultar o **valor efetivo atual** do parâmetro (`VL_PARAMETRO`) durante testes/investigação (não a situação HTML5), usar **Financial** (MCP Oracle `Financial`, sem prefixo `tasy.`), conforme a regra geral.
 
 - `IE_SITUACAO_HTML5 = 'A'` → parâmetro ativo no HTML5, pode ser usado normalmente
 - `IE_SITUACAO_HTML5 = 'I'` → parâmetro inativo no HTML5 → executar o Passo 2
@@ -243,10 +243,10 @@ WHERE nr_seq_parametro = <NR_PARAMETRO>
 
 ## Dev × Financial ao verificar/ajustar parâmetro para teste — sempre Financial
 
-> **Erro real cometido nesta sessão:** verifiquei o valor efetivo de `FUNCAO_PARAM_USUARIO` (parâmetros 49/220, função 813) na base **Dev** (`tasy.` + `mcp_oracle_*`) e conclui que o usuário estava bloqueado para testar Banregio (valor `N`). O usuário corrigiu: para qualquer cenário de **teste**, o valor efetivo de parâmetro por usuário/perfil/estabelecimento deve ser sempre checado (e, se necessário, ajustado) na base **Financial** (sem prefixo + `mcp_oracle2_*`) — na Financial o mesmo usuário já estava corretamente configurado (`B`/`E`), pronto para o teste.
+> **Erro real cometido nesta sessão:** verifiquei o valor efetivo de `FUNCAO_PARAM_USUARIO` (parâmetros 49/220, função 813) na base **Dev** (`tasy.` + MCP Oracle `Dev`) e conclui que o usuário estava bloqueado para testar Banregio (valor `N`). O usuário corrigiu: para qualquer cenário de **teste**, o valor efetivo de parâmetro por usuário/perfil/estabelecimento deve ser sempre checado (e, se necessário, ajustado) na base **Financial** (sem prefixo + MCP Oracle `Financial`) — na Financial o mesmo usuário já estava corretamente configurado (`B`/`E`), pronto para o teste.
 
-- **Base Dev** (`tasy.` + `mcp_oracle_*`): usar **somente** para consultar `FUNCAO_PARAMETRO` a nível de definição/exportação — descrição do parâmetro, `CD_DOMINIO`, `VL_PARAMETRO_PADRAO`, `IE_SITUACAO_HTML5`. Não é a fonte confiável do valor efetivo por usuário/perfil/estabelecimento (`FUNCAO_PARAM_USUARIO`/`FUNCAO_PARAM_PERFIL`/`FUNCAO_PARAM_ESTAB`) — os dados nessas tabelas podem divergir completamente entre as duas bases.
-- **Base Financial** (sem prefixo + `mcp_oracle2_*`): usar **sempre** que o objetivo for testar/reproduzir um cenário — tanto para ler o valor efetivo quanto para eventualmente ajustá-lo (`mcp_oracle2_execute_update_query` existe para Financial; a Dev normalmente nem concede privilégio de `UPDATE` nessas tabelas de parametrização, `ORA-01031`).
+- **Base Dev** (`tasy.` + MCP Oracle `Dev`): usar **somente** para consultar `FUNCAO_PARAMETRO` a nível de definição/exportação — descrição do parâmetro, `CD_DOMINIO`, `VL_PARAMETRO_PADRAO`, `IE_SITUACAO_HTML5`. Não é a fonte confiável do valor efetivo por usuário/perfil/estabelecimento (`FUNCAO_PARAM_USUARIO`/`FUNCAO_PARAM_PERFIL`/`FUNCAO_PARAM_ESTAB`) — os dados nessas tabelas podem divergir completamente entre as duas bases.
+- **Base Financial** (sem prefixo + MCP Oracle `Financial`): usar **sempre** que o objetivo for testar/reproduzir um cenário — tanto para ler o valor efetivo quanto para eventualmente ajustá-lo (`execute_update_query` existe para Financial; a Dev normalmente nem concede privilégio de `UPDATE` nessas tabelas de parametrização, `ORA-01031`).
 - Essa regra vale para qualquer tipo de cenário de teste, não só Banregio/TEF — sempre que o objetivo for confirmar "o que vai acontecer quando o usuário X testar", consultar Financial.
 
 ---

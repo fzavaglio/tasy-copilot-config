@@ -31,6 +31,10 @@ Este repositório é a **fonte da verdade** da configuração. Foi portabilizado
 
 - Comparar o comportamento do HTML5 com **Java Swing / Delphi** quando é preciso alinhar a implementação.
 
+### Métricas de cards (Azure DevOps)
+
+- Calcular quanto tempo cada card ficou em cada coluna do board e em **Awaiting customer** (Customer Communication Status), para um card ou um grupo de cards (WIQL), em tempo corrido ou em dias úteis de 8 horas, com exportação em CSV (resumo, períodos, consolidado por card e agregado por coluna) para Excel ou Power BI (`scripts/ado-time-in-column.ps1`, skill `ado-time-in-column`).
+
 ## Estrutura
 
 ```
@@ -43,9 +47,10 @@ Este repositório é a **fonte da verdade** da configuração. Foi portabilizado
   skills/                              # conhecimento de domínio (auto-descoberto por descrição)
     corcpa/ corcre/ corctb/ corfin/
     corman-f1/ corman-go/ corman-os/ fatact/
-    tasy-playwright/ azure-devops/ oracle/
+    tasy-playwright/ azure-devops/ oracle/ ado-time-in-column/
 mcp.json.example                       # template dos MCP servers (SEM segredos)
 scripts/package-customizations.ps1     # seed inicial a partir de ~/.copilot (uso pontual)
+scripts/ado-time-in-column.ps1         # tempo por coluna do board e em Awaiting customer (ADO)
 ```
 
 ## Como usar
@@ -64,7 +69,7 @@ scripts/package-customizations.ps1     # seed inicial a partir de ~/.copilot (us
 
 | Variável | Descrição |
 |---|---|
-| `TASY_AZURE_DEVOPS_PAT` | PAT pessoal do Azure DevOps |
+| `TASY_AZURE_DEVOPS_PAT` | PAT pessoal do Azure DevOps (também usado por `scripts/ado-time-in-column.ps1`) |
 | `AZURE_DEVOPS_USER` | Usuário do ADO |
 | `AZURE_DEVOPS_AREA_PATH` | Area path do ADO |
 | `TASY_GITHUB_PAT` | PAT pessoal do GitHub |

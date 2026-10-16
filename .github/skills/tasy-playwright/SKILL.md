@@ -310,7 +310,7 @@ Quando um painel ou localizador retorna zero registros e o problema não é simp
 1. Identificar o dto-code do painel pelo DOM           →  atributo dto-code no tasy-wdbpanel
 2. Localizar o JSON do painel no Schematics DX         →  backend/TasyAppServer/src/main/.../schematics/<módulo>/dbpanels/<code>.json
 3. Extrair o SQL ou dsValores / allCriteria             →  campo "dsValores" em atributos FK, ou query da tabela do panel
-4. Executar no Oracle Financial (mcp_oracle2_*)         →  com os mesmos parâmetros que o usuário passaria
+4. Executar no Oracle Financial (MCP Oracle `Financial`)       →  com os mesmos parâmetros que o usuário passaria
 5. Analisar o WHERE para entender por que zero rows     →  filtro de data, restrição de setor/estabelecimento, cadastro faltando
 6. Corrigir a causa raiz                               →  ajustar filtro, cadastrar registro faltante, ajustar parâmetro
 ```
@@ -444,9 +444,9 @@ const counts = await page.evaluate(() =>
 
 ### Ampliar filtro para gerar massa de teste (>N registros)
 
-Para reproduzir cenários que exigem muitos registros: usar a base Oracle (`mcp_oracle2_*`, Financial) para **descobrir quantos registros existem por critério** e então montar o filtro na tela. Ex.: em títulos, "Datas de referência" ampla (01/01/2000–31/12/2030) + Situação "Aberto" retornou 20.518 títulos.
+Para reproduzir cenários que exigem muitos registros: usar a base Oracle (MCP Oracle `Financial`) para **descobrir quantos registros existem por critério** e então montar o filtro na tela. Ex.: em títulos, "Datas de referência" ampla (01/01/2000–31/12/2030) + Situação "Aberto" retornou 20.518 títulos.
 
-> **A UI `financial-accounting.devops.whebdc.com.br` usa o MESMO banco Oracle do `mcp_oracle2` (Financial)** — confirmado por PK batendo (título 165909 idêntico na tela e no banco). Portanto o MCP Oracle pode ser usado para desenhar/validar os dados de teste que a UI vai exibir.
+> **A UI `financial-accounting.devops.whebdc.com.br` usa o MESMO banco Oracle do MCP Oracle `Financial`** — confirmado por PK batendo (título 165909 idêntico na tela e no banco). Portanto o MCP Oracle pode ser usado para desenhar/validar os dados de teste que a UI vai exibir.
 
 ---
 
@@ -623,7 +623,7 @@ await page.evaluate((code) => {
 | **JS** | `onBeforePerform`, `onAfterPerform`, `action()` no `.js` da função |
 | **Backend Java** | `*Servidor.java` → `*Action.java` |
 | **PL/SQL** | enum `*ProcEnum` → arquivo `.prc` no repositório |
-| **Banco** | `mcp_oracle2_execute_select_query` (Financial) — nunca usar a base Dev (`mcp_oracle_*`) para rastreio/teste |
+| **Banco** | MCP Oracle `Financial` (`execute_select_query`) — nunca usar a base Dev (MCP Oracle `Dev`) para rastreio/teste |
 
 ### 4. Capturar erros de console
 
@@ -717,7 +717,9 @@ Ao navegar de uma função para outra (ex: corManGO → corManOS), carregar a sk
 - **Comportamento de negócio:** ex: dialog que aparece em determinada situação, campo que só habilita sob certa condição
 - **Bug ou limitação:** ex: "digitar no campo X não recarrega o painel — usar Localizador"
 
-### O que registrar em `/memories/repo/tasy-playwright-testing.md`
+### O que registrar nesta skill (`tasy-playwright\SKILL.md`), na seção do tema correspondente
+
+> Não usar o sistema de memória (`/memories/`) para esse conhecimento: ele deve ficar nos arquivos do agente, para estar disponível em qualquer sessão.
 
 - **Padrão de interação** que funcionou onde outros falharam
 - **Anti-pattern confirmado** com o motivo do problema

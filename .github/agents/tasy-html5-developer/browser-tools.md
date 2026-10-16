@@ -51,7 +51,7 @@ O rich edit (CKEditor) **nÃ£o aceita input sintÃ©tico de forma fiel**: `page
 // Spy em saveRecord do painel (via handler do WDBPanel)
 handler.saveRecord = (orig => function(...a){ window.__saveSpy = (window.__saveSpy||0)+1; return orig.apply(this,a); })(handler.saveRecord.bind(handler));
 ```
-E conferir `DT_ATUALIZACAO` do registro no banco (MCP oracle2) antes/depois â€” se nÃ£o mudar, nÃ£o houve gravaÃ§Ã£o.
+E conferir `DT_ATUALIZACAO` do registro no banco (MCP Oracle `Financial`) antes/depois â€” se nÃ£o mudar, nÃ£o houve gravaÃ§Ã£o.
 
 ### Inspecionar flags de read-only de um atributo
 ```js

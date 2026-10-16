@@ -4,9 +4,9 @@
 
 ## Regra de preferência — Financial SEMPRE para desenvolvimento/teste
 
-> **⛔ Qualquer uso de base para desenvolvimento, teste ou consulta de registros de teste é SEMPRE na base Financial (`mcp_oracle2_*`).** Os registros de negócio da base Dev **não são dados de teste** do ambiente usado pelo usuário — conclusões tiradas deles (títulos, lotes, OS, parametrização por usuário/perfil/estabelecimento, objetos compilados) são inválidas para o cenário em análise.
+> **⛔ Qualquer uso de base para desenvolvimento, teste ou consulta de registros de teste é SEMPRE na base Financial (MCP Oracle `Financial`).** Os registros de negócio da base Dev **não são dados de teste** do ambiente usado pelo usuário — conclusões tiradas deles (títulos, lotes, OS, parametrização por usuário/perfil/estabelecimento, objetos compilados) são inválidas para o cenário em análise.
 
-**Base Financial (`mcp_oracle2_*`) — obrigatória para desenvolvimento/teste:**
+**Base Financial (MCP Oracle `Financial`) — obrigatória para desenvolvimento/teste:**
 - Reprodução de cenário e validação de hipótese de bug com dados
 - Consulta de registros/dados de teste (títulos, lotes contábeis, OS, pessoas, atendimentos, etc.)
 - Valor efetivo de parâmetro (`FUNCAO_PARAM_USUARIO`/`_PERFIL`/`_ESTAB`) e ajuste de parâmetro para teste
@@ -14,7 +14,7 @@
 - Inserção/alteração de dados para montar cenário de teste
 - `log_data` (alterações de dicionário) — a tabela em Dev está vazia
 
-**Base Dev (`mcp_oracle_*`) — permitida para consulta de cadastros, definições e históricos (não é dado de teste):**
+**Base Dev (MCP Oracle `Dev`) — permitida para consulta de cadastros, definições e históricos (não é dado de teste):**
 
 | Uso permitido em Dev | Exemplos |
 |---|---|
@@ -23,22 +23,38 @@
 | Cadastro de parâmetros de função | `FUNCAO_PARAMETRO` a nível de definição (`DS_PARAMETRO`, `CD_DOMINIO`, `VL_PARAMETRO_PADRAO`, `IE_SITUACAO_HTML5`), `FUNCTION_RELEASE_NOTE` |
 | Cadastros de dicionário / Schematics Legado | `OBJETO_SCHEMATIC`, `OBJ_SCHEMATIC_EVENTO`, `DIC_OBJETO`, `TASY_LEGENDA`, `REGRA_CONDICAO`, cadastro de funções, tabelas, visões, etc. |
 
-**Checklist obrigatório antes de qualquer chamada `mcp_oracle_*` (Dev):**
-1. A consulta é de **cadastro, definição ou histórico** (tabela acima)? Se não → usar `mcp_oracle2_*` (Financial).
+**Checklist obrigatório antes de qualquer chamada ao MCP Oracle `Dev`:**
+1. A consulta é de **cadastro, definição ou histórico** (tabela acima)? Se não → usar o MCP Oracle `Financial`.
 2. A consulta envolve **registros de negócio/teste** (títulos, lotes, OS, parametrização efetiva por usuário etc.), compilação ou execução de objeto? Se sim → **Financial**, sem exceção.
 3. Uma sessão anterior/outro arquivo usou Dev para a mesma tabela? Isso **não** é justificativa — reavaliar pelos itens acima.
 
 Se uma consulta de desenvolvimento/teste em Financial falhar (tabela vazia, objeto ausente, erro de permissão), **não migrar silenciosamente para Dev**: informar o usuário e perguntar como proceder.
 
+## Como identificar cada conexão Oracle (obrigatório)
+
+Os servidores MCP Oracle do `mcp.json` se chamam `Financial`, `Dev` e `APJ1845`, mas as ferramentas são expostas ao agente como `mcp_oracle_*`, `mcp_oracle2_*` e `mcp_oracle3_*`. **A numeração é atribuída por ordem de inicialização e pode mudar entre sessões — nunca assumir qual sufixo é qual base.** Antes da primeira consulta Oracle da sessão, identificar cada conexão com:
+
+```sql
+SELECT SYS_CONTEXT('USERENV','CURRENT_SCHEMA') AS sch, SYS_CONTEXT('USERENV','SERVICE_NAME') AS svc FROM dual
+```
+
+| Base | Servidor no `mcp.json` | `svc` retornado | `sch` retornado |
+|---|---|---|---|
+| **Financial** | `Financial` | `financial_accounting` | `TASY` |
+| **Dev** | `Dev` | `orcl` | `WHEB_READONLY` |
+| APJ1845 (não usar para dev/teste) | `APJ1845` | `pdb_apj_1845` | `COMERCIAL` |
+
+Neste documento e nos demais, "MCP Oracle `Financial`" / "MCP Oracle `Dev`" significam a conexão identificada por essa tabela.
+
 ## Schema nas queries — regra obrigatória
 
-| Como o usuário chama | Tool prefix | Usuário da sessão | Prefixo nas queries |
+| Como o usuário chama | Conexão (identificar via tabela acima) | Usuário da sessão | Prefixo nas queries |
 |---|---|---|---|
-| "base financial" / Financial (padrão) | `mcp_oracle2_*` | `Tasy` | sem prefixo |
-| "base dev" / Dev (somente cadastros, definições e históricos — ver tabela acima) | `mcp_oracle_*` | `wheb_readonly` | `tasy.` obrigatório |
+| "base financial" / Financial (padrão) | MCP Oracle `Financial` | `Tasy` | sem prefixo |
+| "base dev" / Dev (somente cadastros, definições e históricos — ver tabela acima) | MCP Oracle `Dev` | `wheb_readonly` | `tasy.` obrigatório |
 
-- A base **Financial** (`mcp_oracle2_*`) conecta com o usuário `Tasy`, portanto tabelas e objetos podem ser referenciados **sem prefixo de schema**.
-- A base **Dev** (`mcp_oracle_*`) conecta com o usuário `wheb_readonly`, cujo schema padrão de sessão **não é `TASY`**. Toda referência a tabela, view ou objeto PL/SQL na base Dev **deve ser prefixada com `tasy.`** (ex: `tasy.man_ordem_servico`, `tasy.titulo_pagar`). Nunca omitir o prefixo em queries na base Dev.
+- A base **Financial** (MCP Oracle `Financial`) conecta com o usuário `Tasy`, portanto tabelas e objetos podem ser referenciados **sem prefixo de schema**.
+- A base **Dev** (MCP Oracle `Dev`) conecta com o usuário `wheb_readonly`, cujo schema padrão de sessão **não é `TASY`**. Toda referência a tabela, view ou objeto PL/SQL na base Dev **deve ser prefixada com `tasy.`** (ex: `tasy.man_ordem_servico`, `tasy.titulo_pagar`). Nunca omitir o prefixo em queries na base Dev.
 - Para uso geral do MCP Oracle (quando compilar/testar objetos, limitações de contexto de sessão), ver `plsql-workflow.md`.
 
 ---
@@ -73,7 +89,7 @@ A tabela `log_data` (base **Financial**) registra todas as alterações feitas n
 - `primary_key_values` — PK do registro alterado
 - `column_values` — todos os campos com `old_value` e `new_value`; somente os que diferem representam alterações reais
 
-> **Atenção:** Usar **sempre** a base **Financial** (`mcp_oracle2_*`) — a tabela `log_data` na base Dev está vazia.
+> **Atenção:** Usar **sempre** a base **Financial** (MCP Oracle `Financial`) — a tabela `log_data` na base Dev está vazia.
 
 ### Query padrão para buscar alterações de um card
 
@@ -163,7 +179,7 @@ Para o card 721944, a query retornou (após consolidar 3 eventos intermediários
 
 > Este padrão de consulta é usado na seção "Comment 4 — Alterações Realizadas" de `tasy-workflow.instructions.md` (seção ALTERAÇÕES DE DICIONÁRIO).
 >
-> **Nota sobre a ferramenta MCP:** a query acima usa `WITH` (CTE), o que **`mcp_oracle2_execute_select_query` rejeita** (`Error: Only SELECT queries are allowed`). Reescrever como subqueries aninhadas (`SELECT ... FROM (SELECT ... FROM (...) x) y`) antes de executar via essa ferramenta — a versão com `WITH` acima serve como referência lógica da consulta, não como texto pronto para colar na ferramenta.
+> **Nota sobre a ferramenta MCP:** a query acima usa `WITH` (CTE), o que **`execute_select_query` do MCP Oracle rejeita** (`Error: Only SELECT queries are allowed`). Reescrever como subqueries aninhadas (`SELECT ... FROM (SELECT ... FROM (...) x) y`) antes de executar via essa ferramenta — a versão com `WITH` acima serve como referência lógica da consulta, não como texto pronto para colar na ferramenta.
 
 ### ⚠️ Cuidado: `service_order` pode ficar "grudado" na sessão e poluir a busca com ruído
 
