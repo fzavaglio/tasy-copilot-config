@@ -380,6 +380,8 @@ A branch deve conter as alterações realizadas.
 > git stash push -- TasyAppServer/configuration.yml TasyAppServer/context.xml
 > ```
 > **NUNCA usar `git stash` sem path específico** — isso stasha todos os arquivos modificados no repositório, misturando com outros cards e poluindo o stash. Se houver outros arquivos modificados que não devem ser commitados (ex: `ManutOrdemServicoAction.java` de outro card), descartá-los com `git checkout -- <arquivo>` antes de trocar de branch.
+>
+> **Alterações locais de outros cards bloqueando o checkout:** quando o working copy tiver arquivos modificados de outros cards (que não podem ser descartados nem commitados) e o `checkout` for bloqueado, criar um **worktree separado** em vez de mexer neles: `git worktree add --no-track -b {tipo}/{NR_CARD} ..\wt{NR_CARD} origin/pre_main`. Todo o fluxo (edição, commit, branches de versão via `git checkout --no-track -b {tipo}/{NR_CARD}-{versao} origin/{versao}`, cherry-pick e push) é feito no worktree, sem alterar o working copy original. Ao final, remover com `git worktree remove ..\wt{NR_CARD}` quando não houver mais ajustes pendentes.
 
 #### Passo 2 — Criar branch de trabalho
 

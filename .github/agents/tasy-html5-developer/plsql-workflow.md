@@ -57,6 +57,14 @@ Caracteres acentuados (UTF-8) exibidos via `Select-String`/saída de `git` no te
 
 ---
 
+## Procedure nova chamada pelo nome no backend exige cadastro em `OBJETO_SISTEMA`
+
+Quando o backend executa uma procedure pelo **nome** (ex: `WDAOInjector.procedurePadrao().executa("NOME_PROC", params)`, usado em importações cujo nome da procedure vem de cadastro, como a interface de extrato do Controle Bancário), o framework (`WProcedurePadrao`) resolve o nome em `OBJETO_SISTEMA` (`UPPER(NM_OBJETO)`) e lê os parâmetros em `OBJETO_SISTEMA_PARAM`. Uma procedure apenas compilada no banco, sem esse cadastro, **falha na chamada pela tela** (ex: "Erro na importação!") mesmo funcionando quando executada direto no banco. O cadastro nasce no fluxo normal de versionamento do objeto.
+
+**Teste antes do versionamento (base Financial):** compilar temporariamente o corpo novo numa procedure já cadastrada, com a mesma assinatura e sem uso na base (conferir vínculos de cadastro), testar pela tela e restaurar o fonte original em seguida. Antes da troca, salvar o fonte e conferir que ele é igual ao do banco (ex: `sum(length(regexp_replace(text,'\s','')))` em `USER_SOURCE`); depois da restauração, comparar de novo. Validado no card 776352 com `IMPORTA_EXTRATO_HSBC_240`.
+
+---
+
 ## Localizando o SQL real de uma query nomeada (`executeQuery`/`executeQueryAsHash`)
 
 Quando o frontend chama `executeQuery('NOME_DA_QUERY', {})`/`executeQueryAsHash(...)` e a query **não** é um objeto PL/SQL (não aparece em `get_pl_sql_objects`), o SQL geralmente está registrado no **Schematics Legado** como uma "ação SQL" vinculada à função, não em um arquivo do repositório nem em um objeto de banco executável. Cadeia de tabelas para localizar o texto exato do SQL:

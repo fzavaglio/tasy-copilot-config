@@ -104,6 +104,11 @@ onAfterPerform(schematics, dbPanel, event) {
 > **Resumo do fluxo de uma Action:**
 > `usuário confirma salvar` → `onBeforePerform` (frontend) → `request HTTP ao backend` → `procedure PL/SQL` → `onAfterPerform` (frontend)
 
+> **Validado (card 775128, corFinF3):**
+> - Quando o `onBeforePerform` roda, o registro que vai no request já foi montado. `this.set(...)`/`handler.setValue(...)` feitos ali **não** entram no envio. Para alterar o que vai ao backend, mexer direto em `event.registro` ou em `event.paramsAdicionais`.
+> - Atributos calculados da visão (tipo `FUNCTION`, readOnly, só de descrição, como `NM_PESSOA_*`) **não chegam** em `dbpanel.getRegistro()` na action do backend, mesmo enviados em `event.registro` no `persist` do Schematics DX. Para levar um valor desses ao backend, enviar em `event.paramsAdicionais` e ler com `dbpanel.getParametroAdicional(...)`. Os `paramsAdicionais` continuam disponíveis entre os steps (`withStep`) do beforePost.
+> - Para ler o texto de descrição que o localizador mostra ao lado do campo: `this.detail().getAttribute('CAMPO').getDescription()`. Para saber se o campo está na tela: `.isVisible()`.
+
 ---
 
 ## Read-only de atributos: `readOnly` × `internalReadOnly`
