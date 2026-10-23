@@ -14,7 +14,7 @@ description: Business knowledge for corFin module functions (Financeiro, Fluxo d
 | Função | cd_funcao | Descrição |
 |---|---|---|
 | corFinF2 | (verificar) | Caixa de Recebimento / Fluxo de Caixa |
-| corFinF3 | (verificar) | (verificar) |
+| corFinF3 | 814 | Controle Bancário (no Java Swing, actions em `CorFin_F3`). Lançamentos manuais da aba Transações validados no backend por `TransactionsGenericAction` (chamado no beforePost de `MovtoTransFinancDBPDBPAction`) |
 | *(outras)* | — | *(a documentar)* |
 
 ---
@@ -35,6 +35,19 @@ Exemplos concretos de parâmetros já identificados nesta função (número, com
 | `27` | Permite alterar cartões após registrados na aba Recebimentos | `'S'` → permite edição; `'N'`/ausente → bloqueia (cuidado com lógica invertida) |
 | `29` | Desabilita o bloco de `CD_PESSOA_FISICA` | `!this.isParameter(29)` → adiciona blur handler no campo |
 | `91` | Define quem pode editar o saldo diário (auditoria) | `'S'` → usuário atual pode editar; caso contrário, verifica permissão por perfil (consulta 122175) |
+
+### corFinF3 — Campos da transação e atributos de descrição
+
+- Os campos exibidos num lançamento do Controle Bancário vêm de `TRANS_FINANC_CAMPO` (função "Cadastro de Transações Financeiras", 1120 > aba "Campos da transação"). O combo "Campo" só lista atributos de `MOVTO_TRANS_FINANC` editáveis (`ie_readonly <> 'S'`), então atributos gerados pelo sistema (ex: `NM_PESSOA_CONTA`, `NM_PESSOA_TITULO_RECEBER`) **não podem ser configurados**.
+- Na visão 77814 esses `NM_PESSOA_*`/`DS_*` são atributos de descrição (`ie_componente = 'de'`, `nm_atributo_pai` = campo FK, sem grupo). No Java aparecem como descrição do campo pai; no HTML5 o texto ao lado do campo vem do **localizador** e o atributo calculado **não entra no registro** enviado ao backend.
+- Correção do card 775128: o frontend envia o nome exibido ao lado de "Conta paciente" como parâmetro adicional `NM_PESSOA_CONTA` (só quando o campo está visível) e a validação da mensagem 108592 ("A conta é inválida, informe novamente!") lê desse parâmetro.
+
+### corFinF3 — Importação de extrato bancário (aba Extrato > opção de mouse "Importar extrato")
+
+- A interface usada é cadastrada por conta em Cadastros Financeiros > Banco > Estabelecimento > Interface (`BANCO_ESTAB_INTERF`, tipo `CB`): interface + tabela (`NM_TABELA`) + procedure (`DS_OBJETO`). A interface padrão é a **1498 - Extrato Banco - Procedure(Padrão)**, que copia a linha inteira do arquivo para `W_INTERF_CONCIL.DS_CONTEUDO` (chave `NR_SEQ_CONTA` = conta bancária).
+- No HTML5, se a interface escolhida não tiver tabela **e** procedure, a importação é bloqueada (mensagem 359241). Depois de gravar as linhas na tabela, o backend chama a procedure passando **somente** `NR_SEQ_EXTRATO_P` e, por fim, grava a data de importação no extrato. Por isso toda procedure de importação tem a assinatura `(nr_seq_extrato_p number)`, lê a conta do extrato, interpreta `W_INTERF_CONCIL` e apaga as linhas da conta ao final.
+- O Delphi tinha um modo antigo (sem tabela/procedure no cadastro do banco) que lia os campos pelo cadastro de atributos da interface: histórico = `BANCO.CD_SALDO_ANTERIOR` (1ª ocorrência) atualiza data/saldo inicial; histórico = `BANCO.CD_SALDO_FINAL` atualiza data/saldo final; demais linhas D/C viram lançamentos; se `BANCO.IE_IMP_EXTRATO_DUP <> 'S'` e já existe lançamento com mesmo documento/valor/data/D-C (em qualquer conta), a linha não entra e o valor é somado ao saldo inicial. Sem os códigos de saldo no banco, aborta com a mensagem 110491. Esse modo **não existe no HTML5** — a migração é feita criando uma procedure para a interface 1498 (ex: `IMPORTA_EXTRATO_BRASIL_SEPARADOR`, card 776352).
+- Arquivos com separador `;` são lidos com `obter_valor_campo_separador(ds_conteudo, <posição>, ';')`.
 
 *(demais seções a preencher conforme cards trabalhados)*
 
@@ -84,4 +97,6 @@ A resolução da bandeira acontece assim:
 
 | Card | Função | Resumo |
 |---|---|---|
+| [776352](https://dev.azure.com/emr-cm/EMR/_workitems/edit/776352) | corFinF3 (importação de extrato, interface 1498) | User Story · cliente importava no Delphi extrato com campos separados por `;` pelo modo antigo baseado nos atributos da interface (1041), inexistente no HTML5 · criada a procedure padrão `IMPORTA_EXTRATO_BRASIL_SEPARADOR` (tasyfin, disponível para todos os clientes), vinculada à interface 1498 na conta bancária, que lê `W_INTERF_CONCIL` por posição do separador e reproduz a regra do Delphi (saldo anterior/final pelos códigos do banco, duplicidade por `IE_IMP_EXTRATO_DUP`, abort 110491 sem códigos) · reproduzir na base Financial cadastrando a interface na conta 173 (banco 25, códigos 000/999) e importando o arquivo anexado ao card |
+| [775128](https://dev.azure.com/emr-cm/EMR/_workitems/edit/775128) | corFinF3 (MovtoTransFinancDBPanel.js / TransactionsGenericAction) | Bug · Lançamento com conta paciente bloqueado no HTML5 com "A conta é inválida, informe novamente!" (msg 108592) para qualquer conta · a validação lia `NM_PESSOA_CONTA` (atributo calculado de descrição) do registro, que nunca chega à action no HTML5 · corrigido enviando o nome exibido ao lado de "Conta paciente" como parâmetro adicional `NM_PESSOA_CONTA` (só com o campo visível) e lendo dele na validação · reproduzir na base Financial com a transação 4360 (campo Conta paciente) + conta 1428094 na conta bancária seq 11 |
 | [755539](https://dev.azure.com/emr-cm/EMR/_workitems/edit/755539) | corFinF2 (PayCardWithTef.js) | CCI TPV-11-06-2026 · tipo de tarjeta (Crédito/Débito) do pagamento TPV era só a seleção manual do caixa, número do cartão gravado sem tratamento e banco emissor nunca registrado · corrigido identificando tipo/banco automaticamente via BIN (novas functions `OBTER_TIPO_PRODUTO_TEF`/`OBTER_BANCO_EMISSOR_TEF`, catálogo `ztfi046.xlsx`) e gravando só os últimos 4 dígitos em `NR_CARTAO` · reproduzir pagando via TPV com um BIN cadastrado no catálogo e conferindo `IE_TIPO_CARTAO`/`NR_CARTAO`/`DS_OBSERVACAO` em `MOVTO_CARTAO_CR` |
